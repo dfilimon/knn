@@ -63,8 +63,7 @@ public class StreamingKMeansReducer extends Reducer<IntWritable, CentroidWritabl
                      Context context) throws IOException, InterruptedException {
     List<Centroid> intermediateCentroids = Lists.newArrayList();
     for (CentroidWritable centroidWritable : centroids) {
-      Centroid row = centroidWritable.getCentroid();
-      intermediateCentroids.add((Centroid) centroidWritable.getCentroid().clone());
+      intermediateCentroids.add(centroidWritable.getCentroid().clone());
     }
     BallKMeans clusterer = new BallKMeans(new BruteSearch(new EuclideanDistanceMeasure()),
         numClusters,  maxNumIterations);

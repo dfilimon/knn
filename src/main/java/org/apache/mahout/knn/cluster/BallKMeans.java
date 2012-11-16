@@ -256,6 +256,8 @@ public class BallKMeans implements Iterable<Centroid> {
       centroids.clear();
       centroids.addAll(newCentroids);
     }
+
+    // TODO: extra pass to ensure correct total weights
   }
 
   @Override
