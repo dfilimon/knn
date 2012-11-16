@@ -19,17 +19,24 @@ package org.apache.mahout.knn.experimental;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.sun.istack.internal.Nullable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.mahout.common.commandline.DefaultOptionCreator;
+import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.cluster.BallKMeans;
+import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.math.Centroid;
+import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.WeightedVector;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 public class StreamingKMeansReducer extends Reducer<IntWritable, CentroidWritable, IntWritable,
     CentroidWritable> {
@@ -54,17 +61,18 @@ public class StreamingKMeansReducer extends Reducer<IntWritable, CentroidWritabl
   @Override
   public void reduce(IntWritable key, Iterable<CentroidWritable> centroids,
                      Context context) throws IOException, InterruptedException {
-    BallKMeans clusterer = new BallKMeans(numClusters, Iterables.transform(centroids,
-        new Function<CentroidWritable, WeightedVector>() {
-      @Override
-      public WeightedVector apply(@Nullable CentroidWritable input) {
-        return input.getCentroid();
-      }
-    }), maxNumIterations);
-    Iterator<Centroid> ci = clusterer.iterator();
-    while (ci.hasNext()) {
-      Centroid centroid = ci.next();
-      context.write(new IntWritable(centroid.getIndex()), new CentroidWritable(centroid));
+    List<Centroid> intermediateCentroids = Lists.newArrayList();
+    for (CentroidWritable centroidWritable : centroids) {
+      Centroid row = centroidWritable.getCentroid();
+      intermediateCentroids.add((Centroid) centroidWritable.getCentroid().clone());
+    }
+    BallKMeans clusterer = new BallKMeans(new BruteSearch(new EuclideanDistanceMeasure()),
+        numClusters,  maxNumIterations);
+    clusterer.cluster(intermediateCentroids);
+    int index = 0;
+    for (Centroid centroid : clusterer) {
+      context.write(new IntWritable(index), new CentroidWritable(centroid));
+      ++index;
     }
   }
 }
