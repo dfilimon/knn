@@ -130,6 +130,7 @@ public class BruteSearch extends UpdatableSearcher {
       es.invokeAll(tasks);
       es.shutdown();
     } catch (InterruptedException e) {
+      // This is ugly, but the point seems to be to not add a throws to the declaration.
       throw new RuntimeException("Impossible error");
     }
 

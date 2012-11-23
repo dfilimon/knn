@@ -85,7 +85,8 @@ public class HashedVector extends WeightedVector {
    */
   @Override
   public int compareTo(WeightedVector other) {
-    if (other instanceof WeightedVector)
+    Preconditions.checkNotNull(other, "Attempted comparison with null");
+    if (!(other instanceof HashedVector))
       return super.compareTo(other);
     HashedVector hashedOther = (HashedVector)other;
     if (this == hashedOther) {

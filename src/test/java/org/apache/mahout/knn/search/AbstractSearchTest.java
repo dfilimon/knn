@@ -99,10 +99,8 @@ public abstract class AbstractSearchTest {
     for (MatrixSlice slice : queries) {
       Vector query = slice.vector();
       final Vector epsilon = noise.sample();
-      List<WeightedThing<Vector>> r0 = s.search(query, 2);
       query = query.plus(epsilon);
       List<WeightedThing<Vector>> r = s.search(query, 2);
-      r = s.search(query, 2);
       assertEquals("Distance has to be small", epsilon.norm(2), r.get(0).getWeight(), 1e-5);
       assertEquals("Answer must be substantially the same as query", epsilon.norm(2),
           r.get(0).getValue().minus(query).norm(2), 1e-5);

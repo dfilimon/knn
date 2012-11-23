@@ -48,14 +48,14 @@ import java.util.List;
  */
 public class BallKMeans implements Iterable<Centroid> {
   // The searcher containing the centroids.
-  private UpdatableSearcher centroids;
+  private final UpdatableSearcher centroids;
 
   // The number of clusters to cluster the data into.
-  private int numClusters;
+  private final int numClusters;
 
   // The maximum number of iterations of the algorithm to run waiting for the cluster assignments
   // to stabilize. If there are no changes in cluster assignment earlier, we can finish early.
-  private int maxNumIterations;
+  private final int maxNumIterations;
 
   // When deciding which points to include in the new centroid calculation,
   // it's preferable to exclude outliers since it increases the rate of convergence.
@@ -64,14 +64,14 @@ public class BallKMeans implements Iterable<Centroid> {
   // the point with the distance between the centroid and its closest centroid neighbor
   // multiplied by this trimFraction. If the distance between the centroid and the point is
   // greater, we consider it an outlier and we don't use it.
-  private double trimFraction;
+  private final double trimFraction;
 
   public BallKMeans(UpdatableSearcher searcher, int numClusters, int maxNumIterations) {
     this(searcher, numClusters, maxNumIterations, 0.9);
   }
 
   public BallKMeans(UpdatableSearcher searcher, int numClusters, int maxNumIterations,
-                    double trimFraction) {
+                    @SuppressWarnings("SameParameterValue") double trimFraction) {
     Preconditions.checkArgument(searcher.size() == 0, "Searcher must be empty initially to " +
         "populate with centroids");
     Preconditions.checkArgument(numClusters > 0, "The requested number of clusters must be " +
@@ -214,6 +214,7 @@ public class BallKMeans implements Iterable<Centroid> {
 
     boolean changed = true;
     for (int i = 0; changed && i < maxNumIterations; i++) {
+      changed = false;
       // We compute what the distance between each cluster and its closest neighbor is to set a
       // proportional distance threshold for points that should be involved in calculating the
       // centroid.

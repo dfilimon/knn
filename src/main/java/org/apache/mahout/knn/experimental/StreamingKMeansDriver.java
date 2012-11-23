@@ -43,18 +43,53 @@ import org.slf4j.LoggerFactory;
  * algorithm.
  */
 public final class StreamingKMeansDriver extends AbstractJob {
-  // TODO(dfilimon): These constants should move to DefaultOptionCreator and so should the code
-  // that handles their creation.
+  // TODO(dfilimon): These constants could move to DefaultOptionCreator.
+  /**
+   * The Searcher class when performing nearest neighbor search in StreamingKMeans.
+   * Defaults to BruteSearch.
+   */
   public static final String SEARCHER_CLASS_OPTION = "searcherClass";
+  /**
+   * The number of projections to use when using a projection searcher like ProjectionSearch or
+   * FastProjectionSearch. Projection searches work by projection the all the vectors on to a set of
+   * basis vectors and searching for the projected query in that totally ordered set. This
+   * however can produce false positives (vectors that are closer when projected than they would
+   * actually be.
+   * So, there must be more than one projection vectors in the basis. This variable is the number
+   * of vectors in a basis.
+   * Defaults to 20.
+   */
   public static final String NUM_PROJECTIONS_OPTION = "numProjections";
+  /**
+   * When using approximate searches (anything that's not BruteSearch),
+   * more than just the seemingly closest element must be considered. This variable has different
+   * meanings depending on the actual Searcher class used but is a measure of how many candidates
+   * will be considered.
+   * See the ProjectionSearch, FastProjectionSearch, LocalitySensitiveHashSearch classes for more
+   * details.
+   * Defaults to 10.
+   */
   public static final String SEARCH_SIZE_OPTION = "searchSize";
+  /**
+   * After mapping finishes, we get an intermediate set of vectors that represent approximate
+   * clusterings of the data from each Mapper. These can be clustered by the Reducer using
+   * BallKMeans in memory. This variable is the maximum number of iterations in the final
+   * BallKMeans algorithm.
+   * Defaults to 10.
+   */
   public static final String MAX_NUM_ITERATIONS = "maxNumIterations";
+  /**
+   * The initial estimated distance cutoff between two points for forming new clusters.
+   * @see org.apache.mahout.knn.cluster.DataUtils for a simple estimation method.
+   * @see org.apache.mahout.knn.cluster.StreamingKMeans
+   * Defaults to 10e-6.
+   */
+  public static final String ESTIMATE_DISTANCE_CUTOFF = "estimateDistanceCutoff";
 
   private static final Logger log = LoggerFactory.getLogger(StreamingKMeansDriver.class);
 
   @Override
   public int run(String[] args) throws Exception {
-
     addInputOption();
     addOutputOption();
     addOption(DefaultOptionCreator.overwriteOption().create());
@@ -75,49 +110,37 @@ public final class StreamingKMeansDriver extends AbstractJob {
         "searchSize. If no value is given, defaults to 10.", "10");
     addOption("maxNumIterations", "i", "The maximum number of iterations to run for the " +
         "BallKMeans algorithm used by the reducer.", "10");
+    addOption("estimateDistanceCutoff", "e", "The initial estimated distance cutoff between two " +
+        "points for forming new clusters", "10e-6");
 
     if (parseArguments(args) == null) {
       return -1;
     }
-
     Path input = getInputPath();
     Path output = getOutputPath();
     if (hasOption(DefaultOptionCreator.OVERWRITE_OPTION)) {
       HadoopUtil.delete(getConf(), output);
     }
     configureOptionsForWorkers();
-
     run(getConf(), input, output);
     return 0;
   }
 
-  /**
-   * Set up the Configuration object used by Mappers and Reducers to configure
-   * themselves with the requested options. The options control:
-   * <ul>
-   *   <li>how many clusters to generate</li>
-   *   <li>which distance measure to use</li>
-   *   <li>which searcher class to use, and what parameters to instantiate it with</li>
-   * </ul>
-   */
   private void configureOptionsForWorkers() throws ClassNotFoundException, IllegalAccessException,
       InstantiationException {
-    Configuration conf = getConf();
     log.info("Starting to configure options for workers");
 
-    // The number of clusters to generate.
     String numClustersStr = getOption(DefaultOptionCreator.NUM_CLUSTERS_OPTION);
     Preconditions.checkNotNull(numClustersStr, "No number of clusters specified");
     int numClusters = Integer.parseInt(numClustersStr);
+    Preconditions.checkArgument(numClusters > 0, "Invalid number of clusters requested");
 
-    // The distance measure class to use.
     String measureClass = getOption(DefaultOptionCreator.DISTANCE_MEASURE_OPTION);
     if (measureClass == null) {
       measureClass = EuclideanDistanceMeasure.class.getName();
       log.info("No measure class given, using EuclideanDistanceMeasure");
     }
 
-    // The searcher class to use. This should never be null because of the default value.
     String searcherClass = getOption(SEARCHER_CLASS_OPTION);
     Preconditions.checkNotNull(searcherClass, "No searcher class specified");
 
@@ -141,6 +164,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
       Preconditions.checkNotNull(searchSize, "No searcher size given and the searcher class is " +
           searcherClass);
       searchSize = Integer.parseInt(searchSizeStr);
+      Preconditions.checkArgument(searchSize > 0, "Invalid searchSize. Must be positive.");
     }
 
     // The number of projections to use. This is only useful in projection searches which
@@ -152,6 +176,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
       Preconditions.checkNotNull(numProjections, "No number of projections given and the " +
           "searcher class is " + searcherClass);
       numProjections = Integer.parseInt(numProjectionsStr);
+      Preconditions.checkArgument(numProjections > 0, "Invalid numProjections. Must be positive");
     }
 
     String maxNumIterationsStr = getOption(MAX_NUM_ITERATIONS);
@@ -231,7 +256,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
       throw new InterruptedException("StreamingKMeans interrupted");
     }
 
-    log.info("StreamignKMeans job complete");
+    log.info("StreamingKMeans clustering complete");
   }
 
   /**

@@ -187,7 +187,7 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
     if (x.get(0).getWeight() < 1e-7) {
       Iterator<Vector> basisVectors = this.basisVectors.iterator();
       for (TreeSet<WeightedThing<Vector>> projection : scalarProjections) {
-        if (!projection.remove(new WeightedThing<Integer>(-1, vector.dot(basisVectors.next())))) {
+        if (!projection.remove(new WeightedThing<Vector>(null, vector.dot(basisVectors.next())))) {
           throw new RuntimeException("Internal inconsistency in ProjectionSearch");
         }
       }

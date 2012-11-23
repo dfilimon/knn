@@ -17,6 +17,7 @@
 
 package org.apache.mahout.knn.experimental;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,7 +58,7 @@ public class BasicKMeans {
    * @param conf the Hadoop configuration file to write this file on.
    * @throws IOException
    */
-  public static void writePointsToFile(List<Vector> points, String fileName, FileSystem fs,
+  public static void writePointsToFile(List<Vector> points, @SuppressWarnings("SameParameterValue") String fileName, FileSystem fs,
                                        Configuration conf) throws IOException {
     Path path = new Path(fileName);
     SequenceFile.Writer writer = new SequenceFile.Writer(fs, conf, path,
@@ -95,11 +96,11 @@ public class BasicKMeans {
 
     File testData = new File("testdata");
     if (!testData.exists()) {
-      testData.mkdir();
+      Preconditions.checkArgument(testData.mkdir());
     }
     testData = new File("testdata/points");
     if (!testData.exists()) {
-      testData.mkdir();
+      Preconditions.checkArgument(testData.mkdir());
     }
 
     Configuration conf = new Configuration();

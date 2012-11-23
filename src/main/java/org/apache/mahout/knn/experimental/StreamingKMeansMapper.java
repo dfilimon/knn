@@ -39,27 +39,51 @@ import java.util.List;
 
 public class StreamingKMeansMapper extends Mapper<IntWritable, CentroidWritable,
     IntWritable,CentroidWritable> {
-  private static final Logger log = LoggerFactory.getLogger(Mapper.class);
 
+  /**
+   * The clusterer object used to cluster the points received by this mapper online.
+   */
   private StreamingKMeans clusterer;
 
+  private static final Logger log = LoggerFactory.getLogger(Mapper.class);
+
+  @Override
+  public void setup(Context context) {
+    // At this point the configuration received from the Driver is assumed to be valid.
+    // No other checks are made.
+    Configuration conf = context.getConfiguration();
+    UpdatableSearcher searcher;
+    searcher = searcherFromConfiguration(conf);
+    int numClusters = conf.getInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, 1);
+    clusterer = new StreamingKMeans(searcher, numClusters,
+        conf.getFloat(StreamingKMeansDriver.ESTIMATE_DISTANCE_CUTOFF, (float) 10e-6));
+  }
+
+  @Override
+  public void map(IntWritable key, CentroidWritable point, Context context) {
+    clusterer.cluster(point.getCentroid());
+  }
+
+  @Override
+  public void cleanup(Context context) throws IOException, InterruptedException {
+    // All outputs have the same key to go to the same final reducer.
+    for (Centroid centroid : clusterer.getCentroidsIterable()) {
+      context.write(new IntWritable(0), new CentroidWritable(centroid));
+    }
+  }
+
+  @SuppressWarnings("ConstantConditions")
   public static UpdatableSearcher searcherFromConfiguration(Configuration conf) {
     DistanceMeasure distanceMeasure = null;
+    String distanceMeasureClass = conf.get(DefaultOptionCreator.DISTANCE_MEASURE_OPTION);
     try {
-      distanceMeasure = (DistanceMeasure)Class.forName(conf.get(DefaultOptionCreator.
-          DISTANCE_MEASURE_OPTION)).newInstance();
+      distanceMeasure = (DistanceMeasure)Class.forName(distanceMeasureClass).newInstance();
     } catch (Exception e) {
-      log.info("Failed to instantiate distanceMeasure");
-      return null;
+      throw new RuntimeException("Failed to instantiate distanceMeasure" + distanceMeasureClass);
     }
 
-    int searchSize = 0;
-    searchSize = conf.getInt(StreamingKMeansDriver.SEARCH_SIZE_OPTION, 0);
-    Preconditions.checkArgument(searchSize > 0, "Invalid search size.");
-
-    int numProjections = 0;
-    numProjections = conf.getInt(StreamingKMeansDriver.NUM_PROJECTIONS_OPTION, 0);
-    Preconditions.checkArgument(numProjections > 0, "Invalid number of projections.");
+    int numProjections =  conf.getInt(StreamingKMeansDriver.NUM_PROJECTIONS_OPTION, 20);
+    int searchSize =  conf.getInt(StreamingKMeansDriver.SEARCH_SIZE_OPTION, 10);
 
     UpdatableSearcher searcher = null;
     String searcherClass = conf.get(StreamingKMeansDriver.SEARCHER_CLASS_OPTION);
@@ -84,25 +108,4 @@ public class StreamingKMeansMapper extends Mapper<IntWritable, CentroidWritable,
     return searcher;
   }
 
-  @Override
-  public void setup(Context context) {
-    Configuration conf = context.getConfiguration();
-    UpdatableSearcher searcher;
-    searcher = searcherFromConfiguration(conf);
-    int numClusters = conf.getInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, 0);
-    Preconditions.checkArgument(numClusters > 0, "No number of clusters specified.");
-    clusterer = new StreamingKMeans(searcher, numClusters, 10e-3);
-  }
-
-  @Override
-  public void map(IntWritable key, CentroidWritable point, Context context) {
-    clusterer.cluster(point.getCentroid());
-  }
-
-  @Override
-  public void cleanup(Context context) throws IOException, InterruptedException {
-    for (Centroid centroid : clusterer.getCentroidsIterable()) {
-      context.write(new IntWritable(0), new CentroidWritable(centroid));
-    }
-  }
 }

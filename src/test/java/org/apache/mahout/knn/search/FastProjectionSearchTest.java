@@ -55,9 +55,10 @@ public class FastProjectionSearchTest extends AbstractSearchTest {
     @Override
     public Vector apply(WeightedThing<Vector> input) {
       Preconditions.checkArgument(input != null);
+      //noinspection ConstantConditions
       return input.getValue();
     }
-  };
+  }
 
   @Test
   public void testEpsilon() {
@@ -94,9 +95,7 @@ public class FastProjectionSearchTest extends AbstractSearchTest {
         for (MatrixSlice qx : q) {
           final Vector query = qx.vector();
           final List<WeightedThing<Vector>> r1 = brute.search(query, 20);
-          Vector v1 = r1.get(0).getValue();
           final List<WeightedThing<Vector>> r2 = test.search(query, 30);
-          Vector v2 = r2.get(0).getValue();
 
           for (Vector v : Iterables.transform(r1, new StripWeight())) {
             for (Vector w : Iterables.transform(r2, new StripWeight())) {
@@ -104,6 +103,7 @@ public class FastProjectionSearchTest extends AbstractSearchTest {
                 ++averageOverlap;
             }
           }
+
           if (r2.get(0).getWeight() / r1.get(0).getWeight() > 1.4) {
             System.out.printf("[fast-projection] %f [brute] %f [ratio] %f\n",
                 r2.get(0).getWeight(), r1.get(0).getWeight(), r2.get(0).getWeight() / r1.get(0).getWeight());

@@ -219,7 +219,7 @@ public class FastProjectionSearch extends UpdatableSearcher {
           Iterator<WeightedThing<Vector>> data = scalarProjections.get(0).iterator();
           @Override
           protected Vector computeNext() {
-            WeightedThing<Vector> next = null;
+            WeightedThing<Vector> next;
             do {
               if (!data.hasNext()) {
                 return endOfData();

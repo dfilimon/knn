@@ -93,9 +93,8 @@ public class CentroidWritable implements Writable, Comparable<CentroidWritable> 
 
     CentroidWritable writable = (CentroidWritable) o;
 
-    if (!centroid.equals(writable.centroid)) return false;
+    return centroid.equals(writable.centroid);
 
-    return true;
   }
 
   @Override

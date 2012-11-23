@@ -17,11 +17,7 @@
 
 package org.apache.mahout.knn.experimental;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.sun.istack.internal.Nullable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -30,13 +26,9 @@ import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.cluster.BallKMeans;
 import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.math.Centroid;
-import org.apache.mahout.math.Vector;
-import org.apache.mahout.math.WeightedVector;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 public class StreamingKMeansReducer extends Reducer<IntWritable, CentroidWritable, IntWritable,
     CentroidWritable> {
@@ -46,25 +38,23 @@ public class StreamingKMeansReducer extends Reducer<IntWritable, CentroidWritabl
 
   @Override
   public void setup(Context context) {
+    // At this point the configuration received from the Driver is assumed to be valid.
+    // No other checks are made.
     Configuration conf = context.getConfiguration();
-    numClusters = conf.getInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, 0);
-    if (numClusters < 1) {
-      throw new RuntimeException("Number of clusters must be positive: " + numClusters);
-    }
-    maxNumIterations = conf.getInt(StreamingKMeansDriver.MAX_NUM_ITERATIONS, 0);
-    if (maxNumIterations < 1) {
-      throw new RuntimeException("Maximum number of iterations must be positive: " +
-          maxNumIterations);
-    }
+    numClusters = conf.getInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, 1);
+    maxNumIterations = conf.getInt(StreamingKMeansDriver.MAX_NUM_ITERATIONS, 10);
   }
 
   @Override
   public void reduce(IntWritable key, Iterable<CentroidWritable> centroids,
                      Context context) throws IOException, InterruptedException {
+    // A new list must be created because Hadoop iterators mutate the contents of the Writable in
+    // place, without allocating new references when iterating through the centroids Iterable.
     List<Centroid> intermediateCentroids = Lists.newArrayList();
     for (CentroidWritable centroidWritable : centroids) {
       intermediateCentroids.add(centroidWritable.getCentroid().clone());
     }
+    // TODO(dfilimon): Does it make sense to make this clusterer more configurable?
     BallKMeans clusterer = new BallKMeans(new BruteSearch(new EuclideanDistanceMeasure()),
         numClusters,  maxNumIterations);
     clusterer.cluster(intermediateCentroids);
