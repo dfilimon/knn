@@ -18,51 +18,25 @@
 package org.apache.mahout.knn.experimental;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 import com.google.common.base.Preconditions;
-import org.apache.commons.math.ArgumentOutsideDomainException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.mahout.clustering.Cluster;
-import org.apache.mahout.clustering.classify.*;
-import org.apache.mahout.clustering.iterator.ClusterWritable;
-import org.apache.mahout.clustering.iterator.ClusteringPolicy;
-import org.apache.mahout.clustering.kmeans.RandomSeedGenerator;
 import org.apache.mahout.common.AbstractJob;
-import org.apache.mahout.common.ClassUtils;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.commandline.DefaultOptionCreator;
-import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
-import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
-import org.apache.mahout.common.iterator.sequencefile.PathFilters;
-import org.apache.mahout.common.iterator.sequencefile.PathType;
-import org.apache.mahout.common.iterator.sequencefile.SequenceFileDirValueIterable;
-import org.apache.mahout.common.iterator.sequencefile.SequenceFileDirValueIterator;
 import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.knn.search.LocalitySensitiveHashSearch;
-import org.apache.mahout.math.Vector;
-import org.apache.mahout.math.Vector.Element;
-import org.apache.mahout.math.VectorWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.Assert.assertThat;
 
 /**
  * Classifies the vectors into different clusters found by the clustering
@@ -99,6 +73,8 @@ public final class StreamingKMeansDriver extends AbstractJob {
         "not all distances are calculated for determining the nearest neighbors. The number of " +
         "elements whose distances from the query vector is actually computer is proportional to " +
         "searchSize. If no value is given, defaults to 10.", "10");
+    addOption("maxNumIterations", "i", "The maximum number of iterations to run for the " +
+        "BallKMeans algorithm used by the reducer.", "10");
 
     if (parseArguments(args) == null) {
       return -1;
@@ -124,68 +100,88 @@ public final class StreamingKMeansDriver extends AbstractJob {
    *   <li>which searcher class to use, and what parameters to instantiate it with</li>
    * </ul>
    */
-  private void configureOptionsForWorkers() {
+  private void configureOptionsForWorkers() throws ClassNotFoundException, IllegalAccessException,
+      InstantiationException {
     Configuration conf = getConf();
     log.info("Starting to configure options for workers");
 
     // The number of clusters to generate.
-    String numClusters = getOption(DefaultOptionCreator.NUM_CLUSTERS_OPTION);
-    if (numClusters == null) {
-      throw new IllegalArgumentException("No number of clusters specified.");
-    }
-    conf.set(DefaultOptionCreator.NUM_CLUSTERS_OPTION, numClusters);
+    String numClustersStr = getOption(DefaultOptionCreator.NUM_CLUSTERS_OPTION);
+    Preconditions.checkNotNull(numClustersStr, "No number of clusters specified");
+    int numClusters = Integer.parseInt(numClustersStr);
 
     // The distance measure class to use.
     String measureClass = getOption(DefaultOptionCreator.DISTANCE_MEASURE_OPTION);
     if (measureClass == null) {
       measureClass = EuclideanDistanceMeasure.class.getName();
+      log.info("No measure class given, using EuclideanDistanceMeasure");
     }
-    try {
-      DistanceMeasure distanceMeasure = (DistanceMeasure)Class.forName(measureClass).newInstance();
-    } catch (ClassNotFoundException e) {
-      e.printStackTrace();
-    } catch (Exception e) {
-    }
-    conf.set(DefaultOptionCreator.DISTANCE_MEASURE_OPTION, measureClass);
 
     // The searcher class to use. This should never be null because of the default value.
     String searcherClass = getOption(SEARCHER_CLASS_OPTION);
-    Preconditions.checkNotNull(searcherClass);
-    conf.set(SEARCHER_CLASS_OPTION, searcherClass);
+    Preconditions.checkNotNull(searcherClass, "No searcher class specified");
 
-    // If the searcher we'll be using is the basic BruteSearch, no other data is needed.
-    if (searcherClass.equals(BruteSearch.class.getName())) {
-      return;
+    // Get more parameters depending on the kind of search class we're working with. BruteSearch
+    // doesn't need anything else.
+    // LocalitySensitiveHashSearch and ProjectionSearches need searchSize.
+    // ProjectionSearches also need the number of projections.
+    boolean getSearchSize = false;
+    boolean getNumProjections = false;
+    if (!searcherClass.equals(BruteSearch.class.getName())) {
+      getSearchSize = true;
+      if (!searcherClass.equals(LocalitySensitiveHashSearch.class.getName())) {
+        getNumProjections = true;
+      }
     }
 
-    // The search size to use. This is quite fuzzy and might end up not being configurable at all
-    // . For now, it's available for experimentation. This will never be null because of the
-    // default value.
-    String searchSize = getOption(SEARCH_SIZE_OPTION);
-    Preconditions.checkNotNull(searchSize);
-    conf.set(SEARCH_SIZE_OPTION, searchSize);
-
-    // If the searcher we'll be using is a locality sensitive hash searcher,
-    // no other data is needed.
-    if (searcherClass.equals(LocalitySensitiveHashSearch.class.getName())) {
-      return;
+    // The search size to use. This is quite fuzzy and might end up not being configurable at all.
+    int searchSize = 0;
+    if (getSearchSize) {
+      String searchSizeStr = getOption(SEARCH_SIZE_OPTION);
+      Preconditions.checkNotNull(searchSize, "No searcher size given and the searcher class is " +
+          searcherClass);
+      searchSize = Integer.parseInt(searchSizeStr);
     }
 
-    // The number of projections to use. This will never be null because of the default value.
-    String numProjections = getOption(NUM_PROJECTIONS_OPTION);
-    Preconditions.checkNotNull(numProjections);
-    conf.set(NUM_PROJECTIONS_OPTION, numProjections);
+    // The number of projections to use. This is only useful in projection searches which
+    // project the vectors on multiple basis vectors to get distance estimates that are faster to
+    // calculate.
+    int numProjections = 0;
+    if (getNumProjections) {
+      String numProjectionsStr = getOption(NUM_PROJECTIONS_OPTION);
+      Preconditions.checkNotNull(numProjections, "No number of projections given and the " +
+          "searcher class is " + searcherClass);
+      numProjections = Integer.parseInt(numProjectionsStr);
+    }
+
+    String maxNumIterationsStr = getOption(MAX_NUM_ITERATIONS);
+    Preconditions.checkNotNull(maxNumIterationsStr, "No maximum number of iterations specified");
+    int maxNumIterations = Integer.parseInt(maxNumIterationsStr);
+
+    configureOptionsForWorkers(getConf(), numClusters, measureClass, searcherClass, searchSize,
+        numProjections, maxNumIterations);
   }
 
   public static void configureOptionsForWorkers(Configuration conf, int numClusters,
                                                 String measureClass, String searcherClass,
-                                                int searchSize, int numProjections) {
-    // conf.setC
+                                                int searchSize, int numProjections,
+                                                int maxNumIterations) {
     conf.setInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, numClusters);
+    try {
+      Class.forName(measureClass);
+    }  catch (ClassNotFoundException e) {
+      log.error("Measure class not found " + measureClass, e);
+    }
     conf.set(DefaultOptionCreator.DISTANCE_MEASURE_OPTION, measureClass);
+    try {
+      Class.forName(searcherClass);
+    } catch (ClassNotFoundException e) {
+      log.error("Searcher class not found " + measureClass, e);
+    }
     conf.set(SEARCHER_CLASS_OPTION, searcherClass);
     conf.setInt(SEARCH_SIZE_OPTION, searchSize);
     conf.setInt(NUM_PROJECTIONS_OPTION, numProjections);
+    conf.setInt(MAX_NUM_ITERATIONS, maxNumIterations);
   }
 
   /**
