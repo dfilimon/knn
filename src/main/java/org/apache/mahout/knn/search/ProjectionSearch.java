@@ -102,17 +102,21 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
         "Invalid dimension of vector to add. " +
             "Expected " + Integer.toString(basisVectors.get(0).size()) +
             " Got " + Integer.toString(v.size()));
+    // TODO(dfilimon): Are these checks even relevant?
     // Add the the new vector and the projected distance to each set separately.
     Iterator<Vector> basisVector = basisVectors.iterator();
     for (TreeSet<WeightedThing<Vector>> s : scalarProjections) {
-      assert s.add(new WeightedThing<Vector>(v, v.dot(basisVector.next())));
+      Preconditions.checkArgument(s.add(new WeightedThing<Vector>(v, v.dot(basisVector.next()))),
+          "Adding a new projection set failed");
     }
     int numVectors = scalarProjections.get(0).size();
     for (TreeSet<WeightedThing<Vector>> s : scalarProjections) {
-      assert s.size() == numVectors;
+      Preconditions.checkArgument(s.size() == numVectors, "Number of vectors in projection sets " +
+          "differ");
       double firstWeight = s.first().getWeight();
       for (WeightedThing<Vector> w : s) {
-        assert firstWeight <= w.getWeight();
+        Preconditions.checkArgument(firstWeight <= w.getWeight(), "Weights not in non-decreasing " +
+            "order");
         firstWeight = w.getWeight();
       }
     }
