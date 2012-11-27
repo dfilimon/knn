@@ -19,6 +19,7 @@ package org.apache.mahout.knn.cluster;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.sun.istack.internal.Nullable;
@@ -30,7 +31,7 @@ import org.apache.mahout.math.random.WeightedThing;
 
 import java.util.*;
 
-public class StreamingKMeans {
+public class StreamingKMeans implements Iterable<Centroid> {
   private double beta;
 
   private double clusterLogFactor;
@@ -92,6 +93,22 @@ public class StreamingKMeans {
     return centroids;
   }
 
+  /**
+   * Returns an iterator over a set of elements of type T.
+   *
+   * @return an Iterator.
+   */
+  @Override
+  public Iterator<Centroid> iterator() {
+    return Iterators.transform(centroids.iterator(), new Function<Vector, Centroid>() {
+      @Override
+      public Centroid apply(@Nullable Vector input) {
+        return (Centroid)input;
+      }
+    });
+  }
+
+  @Deprecated
   public Iterable<Centroid> getCentroidsIterable() {
     return Iterables.transform(centroids, new Function<Vector, Centroid>() {
       @Override
@@ -235,5 +252,6 @@ public class StreamingKMeans {
     // but since we always used Centroids, we adapt the return type.
     return centroids;
   }
+
 }
 
