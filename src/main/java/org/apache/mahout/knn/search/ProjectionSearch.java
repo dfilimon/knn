@@ -59,7 +59,7 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
   private int numProjections;
   private boolean initialized = false;
 
-  static List<Vector> generateBasis(int numDimensions, int numProjections) {
+  public static List<Vector> generateBasis(int numDimensions, int numProjections) {
     final DoubleFunction random = Functions.random();
     List<Vector> basisVectors = Lists.newArrayList();
     for (int i = 0; i < numProjections; ++i) {

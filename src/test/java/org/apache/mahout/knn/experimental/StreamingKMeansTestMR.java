@@ -48,7 +48,7 @@ import java.util.Arrays;
 @RunWith(value = Parameterized.class)
 public class StreamingKMeansTestMR {
 
-  private static final int NUM_DATA_POINTS = 1000;
+  private static final int NUM_DATA_POINTS = 100000;
   private static final int NUM_DIMENSIONS = 3;
   private static final int NUM_PROJECTIONS = 4;
   private static final int SEARCH_SIZE = 10;
