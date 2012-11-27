@@ -21,7 +21,7 @@ import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -82,8 +82,12 @@ public class EvaluateClustering {
   }
 
   public static Iterable<Centroid> clusterStreamingKMeans(Iterable<Centroid> datapoints) {
+    /*
     StreamingKMeans clusterer = new StreamingKMeans(new ProjectionSearch(new
         EuclideanDistanceMeasure(), 10, 10), NUM_CLUSTERS, 10e-6);
+     */
+    StreamingKMeans clusterer = new StreamingKMeans(new BruteSearch(new EuclideanDistanceMeasure()),
+        NUM_CLUSTERS, 10e-6);
     clusterer.cluster(datapoints);
     List<Centroid> intermediateCentroids = Lists.newArrayList(clusterer);
     return clusterBallKMeans(intermediateCentroids);
@@ -107,7 +111,36 @@ public class EvaluateClustering {
     return centroidMap;
   }
 
+  public static void generateCSVFromVectors(List<? extends Vector> datapoints,
+                                            String outPath) throws FileNotFoundException {
+    if (datapoints.isEmpty()) {
+      return;
+    }
+    int numDimensions = datapoints.get(0).size();
+    PrintStream outputStream = new PrintStream(new FileOutputStream(outPath));
+    for (int i = 0; i < numDimensions; ++i) {
+      outputStream.printf("x%d", i);
+      if (i < numDimensions - 1) {
+        outputStream.printf(", ");
+      } else {
+        outputStream.println();
+      }
+    }
+    for (Vector v : datapoints) {
+      for (int i = 0; i < numDimensions; ++i) {
+        outputStream.printf("%f", v.getQuick(i));
+        if (i < numDimensions - 1) {
+          outputStream.printf(", ");
+        } else {
+          outputStream.println();
+        }
+      }
+    }
+    outputStream.close();
+  }
+
   public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+    System.out.println("Processing input vectors");
     Pair<List<Vector>, List<Centroid>> returnPair = getInputVectors(args[0], 50);
     List<Vector> inputVectors = returnPair.getFirst();
     List<Centroid> reducedVectors = returnPair.getSecond();
@@ -129,5 +162,8 @@ public class EvaluateClustering {
     for (Map.Entry<Integer, Integer> entry : countMap.entrySet()) {
       System.out.printf("%d: %d\n", entry.getKey(), entry.getValue());
     }
+
+    System.out.println("Generating CSV file from vectors");
+    generateCSVFromVectors(reducedVectors, args[0] + "-reduced");
   }
 }
