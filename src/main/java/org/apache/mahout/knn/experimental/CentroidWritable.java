@@ -26,7 +26,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-public class CentroidWritable implements Writable, Comparable<CentroidWritable> {
+public class CentroidWritable implements Writable {
   private Centroid centroid = null;
 
   public CentroidWritable() {
@@ -67,23 +67,6 @@ public class CentroidWritable implements Writable, Comparable<CentroidWritable> 
     double weight = dataInput.readDouble();
     Vector v = VectorWritable.readVector(dataInput);
     return new Centroid(index, v, weight);
-  }
-
-  /**
-   * Compares this object with the specified object for order.  Returns a
-   * negative integer, zero, or a positive integer as this object is less
-   * than, equal to, or greater than the specified object.
-   *
-   * @param o the object to be compared.
-   * @return a negative integer, zero, or a positive integer as this object
-   *         is less than, equal to, or greater than the specified object.
-   * @throws NullPointerException if the specified object is null
-   * @throws ClassCastException   if the specified object's type prevents it
-   *                              from being compared to this object.
-   */
-  @Override
-  public int compareTo(CentroidWritable o) {
-    return centroid.compareTo(o.getCentroid());
   }
 
   @Override
