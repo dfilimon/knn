@@ -17,6 +17,8 @@ import org.apache.mahout.knn.search.ProjectionSearch;
 import org.apache.mahout.knn.search.UpdatableSearcher;
 import org.apache.mahout.math.Centroid;
 import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.RandomAccessSparseVector;
+import org.apache.mahout.math.SequentialAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.math.random.WeightedThing;
@@ -27,10 +29,13 @@ import org.junit.runners.Parameterized;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-@RunWith(value = Parameterized.class)
+import junit.framework.TestCase;
+
+// @RunWith(value = Parameterized.class)
 public class EvaluateClustering {
   private static final int NUM_CLUSTERS = 20;
   private static final int MAX_NUM_ITERATIONS = 10;
@@ -42,17 +47,18 @@ public class EvaluateClustering {
   private List<Vector> inputVectors = Lists.newArrayList();
   private List<Centroid> reducedVectors = Lists.newArrayList();
 
-  @Parameterized.Parameters
+  // @Parameterized.Parameters
   public static List<Object[]> generateData() {
     return Arrays.asList(new Object[][]{
-        {"20news-vecs/tfidf-vectors/part-r-00000", 50}
+        // {"20news-vecs/tfidf-vectors/part-r-00000", 50}
+        {"unprojected-tfidf-vectors.seqfile", 50}
     }
     );
   }
 
-  public EvaluateClustering(String inPath, int reducedDimension) throws IOException {
-    this.reducedDimension = reducedDimension;
-    getInputVectors(inPath, reducedDimension, inputPaths, inputVectors, reducedVectors);
+  public EvaluateClustering(/*String inPath, int reducedDimension*/) throws IOException {
+    this.reducedDimension = 50;
+    getInputVectors("unprojected-tfidf-vectors.seqfile", reducedDimension, inputPaths, inputVectors, reducedVectors);
   }
 
   public static void getInputVectors(String inPath, int reducedDimension,
@@ -152,7 +158,7 @@ public class EvaluateClustering {
     }
     return centroidMap;
   }
-
+  
   public static void generateCSVFromVectors(List<? extends Vector> datapoints,
                                             String outPath) throws FileNotFoundException {
     if (datapoints.isEmpty()) {
@@ -169,9 +175,10 @@ public class EvaluateClustering {
       }
     }
     for (Vector v : datapoints) {
-      for (int i = 0; i < numDimensions; ++i) {
-        outputStream.printf("%f", v.getQuick(i));
-        if (i < numDimensions - 1) {
+      Iterator<Vector.Element> vi = v.iterator();
+      while (vi.hasNext()) {
+        outputStream.printf("%f ", vi.next().get());
+        if (vi.hasNext()) {
           outputStream.printf(", ");
         } else {
           outputStream.println();
@@ -239,6 +246,11 @@ public class EvaluateClustering {
   @Test
   public void testGenerateInitialMM() throws FileNotFoundException {
     generateMMFromVectors(inputVectors, "vectors-initial.mm");
+  }
+  
+  @Test
+  public void testGenerateInitialCSV() throws FileNotFoundException {
+    generateCSVFromVectors(inputVectors, "vectors-initial2.csv");
   }
 
   @Test
