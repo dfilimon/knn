@@ -20,6 +20,7 @@ package org.apache.mahout.knn.experimental;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mrunit.mapreduce.ReduceDriver;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
@@ -48,8 +49,8 @@ import java.util.Arrays;
 @RunWith(value = Parameterized.class)
 public class StreamingKMeansTestMR {
 
-  private static final int NUM_DATA_POINTS = 100000;
-  private static final int NUM_DIMENSIONS = 3;
+  private static final int NUM_DATA_POINTS = 10000;
+  private static final int NUM_DIMENSIONS = 10;
   private static final int NUM_PROJECTIONS = 4;
   private static final int SEARCH_SIZE = 10;
   private static final int MAX_NUM_ITERATIONS = 10;
@@ -84,11 +85,11 @@ public class StreamingKMeansTestMR {
 
   @Test
   public void testHypercubeMapper() throws IOException {
-    MapDriver<IntWritable, CentroidWritable, IntWritable, CentroidWritable> mapDriver =
+    MapDriver<Writable, VectorWritable, IntWritable, CentroidWritable> mapDriver =
         MapDriver.newMapDriver(new StreamingKMeansMapper());
     mapDriver.setConfiguration(configuration);
     for (Centroid datapoint : syntheticData.getFirst()) {
-      mapDriver.addInput(new IntWritable(0), new CentroidWritable(datapoint));
+      mapDriver.addInput(new IntWritable(0), new VectorWritable(datapoint));
     }
     List<org.apache.hadoop.mrunit.types.Pair<IntWritable,CentroidWritable>> results = mapDriver.run();
     BruteSearch resultSearcher = new BruteSearch(new EuclideanDistanceMeasure());

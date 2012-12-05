@@ -52,7 +52,7 @@ public class StreamingKMeansReducer extends Reducer<IntWritable, CentroidWritabl
     // place, without allocating new references when iterating through the centroids Iterable.
     List<Centroid> intermediateCentroids = Lists.newArrayList();
     for (CentroidWritable centroidWritable : centroids) {
-      intermediateCentroids.add(centroidWritable.getCentroid().clone());
+      intermediateCentroids.add((Centroid)(centroidWritable.getCentroid().clone()));
     }
     // TODO(dfilimon): Does it make sense to make this clusterer more configurable?
     BallKMeans clusterer = new BallKMeans(new BruteSearch(new EuclideanDistanceMeasure()),

@@ -8,7 +8,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
-import org.apache.mahout.common.Pair;
+import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.cluster.BallKMeans;
 import org.apache.mahout.knn.cluster.StreamingKMeans;
@@ -17,25 +17,19 @@ import org.apache.mahout.knn.search.ProjectionSearch;
 import org.apache.mahout.knn.search.UpdatableSearcher;
 import org.apache.mahout.math.Centroid;
 import org.apache.mahout.math.DenseVector;
-import org.apache.mahout.math.RandomAccessSparseVector;
-import org.apache.mahout.math.SequentialAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.math.random.WeightedThing;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import junit.framework.TestCase;
-
-// @RunWith(value = Parameterized.class)
 public class EvaluateClustering {
   private static final int NUM_CLUSTERS = 20;
   private static final int MAX_NUM_ITERATIONS = 10;
@@ -47,18 +41,17 @@ public class EvaluateClustering {
   private List<Vector> inputVectors = Lists.newArrayList();
   private List<Centroid> reducedVectors = Lists.newArrayList();
 
-  // @Parameterized.Parameters
   public static List<Object[]> generateData() {
     return Arrays.asList(new Object[][]{
-        // {"20news-vecs/tfidf-vectors/part-r-00000", 50}
         {"unprojected-tfidf-vectors.seqfile", 50}
     }
     );
   }
 
   public EvaluateClustering(/*String inPath, int reducedDimension*/) throws IOException {
-    this.reducedDimension = 50;
-    getInputVectors("unprojected-tfidf-vectors.seqfile", reducedDimension, inputPaths, inputVectors, reducedVectors);
+    this.reducedDimension = 1000;
+    getInputVectors("unprojected-tfidf-vectors.seqfile", reducedDimension, inputPaths,
+        inputVectors, reducedVectors);
   }
 
   public static void getInputVectors(String inPath, int reducedDimension,
@@ -92,17 +85,17 @@ public class EvaluateClustering {
   }
 
   public static void computeActualClusters(List<String> inputPaths,
-                                           List<? extends Vector> inputVectors,
+                                           List<Centroid> reducedVectors,
                                            Map<String, Centroid> actualClusters) {
     System.out.println("Starting input vectors clustering.");
     int numClusters = 0;
-    for (int i = 0; i < inputVectors.size(); ++i) {
+    for (int i = 0; i < reducedVectors.size(); ++i) {
       String filePath = inputPaths.get(i);
       int lastSlash = filePath.lastIndexOf('/');
       int postNextLastSlash = filePath.lastIndexOf('/', lastSlash - 1) + 1;
       String clusterName = filePath.substring(postNextLastSlash, lastSlash);
 
-      Vector datapoint = inputVectors.get(i);
+      Vector datapoint = reducedVectors.get(i);
       Centroid centroid = actualClusters.get(clusterName);
       if (centroid == null) {
         centroid = new Centroid(numClusters++, datapoint, 1);
@@ -230,30 +223,28 @@ public class EvaluateClustering {
       searcher.add(entry.getValue());
     }
 
+    Map<Integer, Integer> actualCounts = Maps.newHashMap();
     for (Centroid centroid : centroids) {
       WeightedThing<Vector> closestPair = searcher.search(centroid, 1).get(0);
+      int closestClusterIndex = ((Centroid)closestPair.getValue()).getIndex();
 
-      System.out.printf("Centroid %s closest to actual cluster %s [%s]\n", centroid,
-          closestPair.getValue(), clusterNames.get(((Centroid)closestPair.getValue()).getIndex()));
+      System.out.printf("Centroid %d closest to actual cluster %d [%s]\n", centroid.getIndex(),
+          closestClusterIndex, clusterNames.get(closestClusterIndex));
     }
   }
 
-  @Test
   public void testGenerateReducedCSV() throws FileNotFoundException {
     generateCSVFromVectors(reducedVectors, "vectors-reduced.csv");
   }
 
-  @Test
   public void testGenerateInitialMM() throws FileNotFoundException {
     generateMMFromVectors(inputVectors, "vectors-initial.mm");
   }
-  
-  @Test
+
   public void testGenerateInitialCSV() throws FileNotFoundException {
     generateCSVFromVectors(inputVectors, "vectors-initial2.csv");
   }
 
-  @Test
   public void testBallKMeans() {
     System.out.println("Clustering with BallKMeans");
     Iterable<Centroid> ballKMeansCentroids = clusterBallKMeans(reducedVectors);
@@ -261,10 +252,10 @@ public class EvaluateClustering {
     for (Map.Entry<Integer, Integer> entry : countMap.entrySet()) {
       System.out.printf("%d: %d\n", entry.getKey(), entry.getValue());
     }
-    // evaluateCloseness(ballKMeansCentroids, actualClusters);
+    computeActualClusters(inputPaths, reducedVectors, actualClusters);
+    evaluateCloseness(ballKMeansCentroids, actualClusters);
   }
 
-  @Test
   public void testStreamingKMeans() {
     System.out.println("Clustering with StreamingKMeans");
     Iterable<Centroid> streamingKMeansCentroids = clusterStreamingKMeans(reducedVectors);
@@ -272,6 +263,58 @@ public class EvaluateClustering {
     for (Map.Entry<Integer, Integer> entry : countMap.entrySet()) {
       System.out.printf("%d: %d\n", entry.getKey(), entry.getValue());
     }
-    // evaluateCloseness(ballKMeansCentroids, actualClusters);
+    computeActualClusters(inputPaths, reducedVectors, actualClusters);
+    evaluateCloseness(streamingKMeansCentroids, actualClusters);
+  }
+
+  public void testInOutCluster() throws FileNotFoundException{
+    testGenerateInitialMM();
+    testGenerateReducedCSV();
+    testBallKMeans();
+    testStreamingKMeans();
+  }
+
+  public void testAverageDistances() {
+    Iterable<Centroid> ballKMeansCentroids = clusterBallKMeans(reducedVectors);
+    computeActualClusters(inputPaths, reducedVectors, actualClusters);
+    DistanceMeasure distanceMeasure = new EuclideanDistanceMeasure();
+    BruteSearch bruteSearch = new BruteSearch(distanceMeasure);
+    bruteSearch.addAll(ballKMeansCentroids);
+
+    Map<String, Double> averageRealClusterDistances = Maps.newHashMap();
+    Map<Integer, Double> averageComputedClusterDistances = Maps.newHashMap();
+
+    for (int i = 0; i < reducedVectors.size(); ++i) {
+      String inputPath = inputPaths.get(i);
+      Vector reducedVector = reducedVectors.get(i);
+
+      Double totalRealDistance = averageRealClusterDistances.get(inputPath);
+      double newDistance = distanceMeasure.distance(reducedVector, actualClusters.get(inputPath));
+      if (totalRealDistance == null) {
+        totalRealDistance = new Double(newDistance);
+      } else {
+        totalRealDistance = new Double(totalRealDistance.doubleValue() + newDistance);
+      }
+      averageRealClusterDistances.put(inputPath, totalRealDistance);
+
+      WeightedThing<Vector> closestPair = bruteSearch.search(reducedVector, 1).get(0);
+      int clusterIndex = ((Centroid)closestPair.getValue()).getIndex();
+      Double totalComputedDistance = averageComputedClusterDistances.get(clusterIndex);
+      newDistance = closestPair.getWeight();
+      if (totalComputedDistance == null) {
+        totalComputedDistance = new Double(newDistance);
+      } else {
+        totalComputedDistance = new Double(totalComputedDistance.doubleValue() + newDistance);
+      }
+      averageComputedClusterDistances.put(clusterIndex, totalComputedDistance);
+    }
+
+  }
+
+  public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+    Preconditions.checkArgument(args.length > 2, "Invalid number of arguments. Need input and " +
+        "output paths");
+    EvaluateClustering tester = new EvaluateClustering();
+    tester.testAverageDistances();
   }
 }

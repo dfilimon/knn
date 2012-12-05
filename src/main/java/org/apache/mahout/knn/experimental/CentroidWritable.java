@@ -18,9 +18,9 @@
 package org.apache.mahout.knn.experimental;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.mahout.classifier.sgd.PolymorphicWritable;
-import org.apache.mahout.clustering.classify.WeightedVectorWritable;
-import org.apache.mahout.math.*;
+import org.apache.mahout.math.Centroid;
+import org.apache.mahout.math.Vector;
+import org.apache.mahout.math.VectorWritable;
 
 import java.io.DataInput;
 import java.io.DataOutput;

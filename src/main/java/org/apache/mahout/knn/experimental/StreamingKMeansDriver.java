@@ -17,8 +17,6 @@
 
 package org.apache.mahout.knn.experimental;
 
-import java.io.IOException;
-
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -37,6 +35,8 @@ import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.knn.search.LocalitySensitiveHashSearch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * Classifies the vectors into different clusters found by the clustering
