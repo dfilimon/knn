@@ -22,7 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.sun.istack.internal.Nullable;
 import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.common.distance.SquaredEuclideanDistanceMeasure;
@@ -175,7 +174,7 @@ public class BallKMeans implements Iterable<Centroid> {
       nextSeed.setIndex(clusterIndex++);
       centroids.add(nextSeed);
       // Don't select this one again.
-      seedSelector.set(seedIndex, 0);
+      seedSelector.delete(seedIndex);
       // Re-weight everything according to the minimum distance to a seed.
       for (int currSeedIndex : seedSelector) {
         WeightedVector curr = datapoints.get(currSeedIndex);
@@ -265,7 +264,7 @@ public class BallKMeans implements Iterable<Centroid> {
   public Iterator<Centroid> iterator() {
     return Iterators.transform(centroids.iterator(), new Function<Vector, Centroid>() {
       @Override
-      public Centroid apply(@Nullable Vector input) {
+      public Centroid apply(Vector input) {
         Preconditions.checkArgument(input instanceof Centroid, "Non-centroid in centroids " +
             "searcher");
         return (Centroid)input;

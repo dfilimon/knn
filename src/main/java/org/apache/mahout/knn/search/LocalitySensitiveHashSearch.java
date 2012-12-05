@@ -2,19 +2,16 @@ package org.apache.mahout.knn.search;
 
 import com.google.common.base.Function;
 import com.google.common.collect.*;
-import com.sun.istack.internal.Nullable;
 import org.apache.mahout.common.RandomUtils;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.math.*;
+import org.apache.mahout.math.DenseMatrix;
+import org.apache.mahout.math.Matrix;
+import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.jet.random.Normal;
 import org.apache.mahout.math.random.WeightedThing;
 import org.apache.mahout.math.stats.OnlineSummarizer;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Implements a Searcher that uses locality sensitivity hash as a first pass approximation
@@ -131,7 +128,7 @@ public class LocalitySensitiveHashSearch extends UpdatableSearcher implements It
 
     List<WeightedThing<Vector>> r = Lists.newArrayList(Iterables.transform(top, new Function<WeightedThing<Vector>, WeightedThing<Vector>>() {
       @Override
-      public WeightedThing<Vector> apply(@Nullable WeightedThing<Vector> input) {
+      public WeightedThing<Vector> apply(WeightedThing<Vector> input) {
         return new WeightedThing<Vector>(((HashedVector)(input.getValue())).getVector(),
             input.getWeight());
       }

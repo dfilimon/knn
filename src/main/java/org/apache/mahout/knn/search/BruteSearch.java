@@ -25,7 +25,9 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.WeightedVector;
 import org.apache.mahout.math.random.WeightedThing;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

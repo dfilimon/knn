@@ -44,9 +44,9 @@ import static org.junit.runners.Parameterized.Parameters;
 
 @RunWith(value = Parameterized.class)
 public class StreamingKMeansTest {
-  private static final int NUM_DATA_POINTS = 100000;
-  private static final int NUM_DIMENSIONS = 3;
-  private static final int NUM_PROJECTIONS = 4;
+  private static final int NUM_DATA_POINTS = 10000;
+  private static final int NUM_DIMENSIONS = 5;
+  private static final int NUM_PROJECTIONS = 6;
   private static final int SEARCH_SIZE = 10;
 
   private static Pair<List<Centroid>, List<Centroid>> syntheticData =
@@ -96,10 +96,12 @@ public class StreamingKMeansTest {
         totalWeight(clusterer.getCentroids()), 1e-9);
 
     // and verify that each corner of the cube has a centroid very nearby
+    double maxWeight = 0;
     for (Vector mean : syntheticData.getSecond()) {
       WeightedThing<Vector> v = searcher.search(mean, 1).get(0);
-      assertTrue(v.getWeight() < 0.05);
+      maxWeight = Math.max(v.getWeight(), maxWeight);
     }
+    assertTrue("Maximum weight too large " + maxWeight, maxWeight < 0.05);
     double clusterTime = (endTime - startTime) / 1000.0;
     System.out.printf("%s\n%.2f for clustering\n%.1f us per row\n\n",
         searcher.getClass().getName(), clusterTime,

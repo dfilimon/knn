@@ -21,15 +21,15 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Queues;
-import com.sun.istack.internal.Nullable;
 import org.apache.mahout.common.RandomUtils;
-import org.apache.mahout.knn.search.*;
+import org.apache.mahout.knn.search.UpdatableSearcher;
 import org.apache.mahout.math.*;
-import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.random.WeightedThing;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 public class StreamingKMeans implements Iterable<Centroid> {
   private double beta;
@@ -102,7 +102,7 @@ public class StreamingKMeans implements Iterable<Centroid> {
   public Iterator<Centroid> iterator() {
     return Iterators.transform(centroids.iterator(), new Function<Vector, Centroid>() {
       @Override
-      public Centroid apply(@Nullable Vector input) {
+      public Centroid apply(Vector input) {
         return (Centroid)input;
       }
     });
@@ -112,7 +112,7 @@ public class StreamingKMeans implements Iterable<Centroid> {
   public Iterable<Centroid> getCentroidsIterable() {
     return Iterables.transform(centroids, new Function<Vector, Centroid>() {
       @Override
-      public Centroid apply(@Nullable Vector input) {
+      public Centroid apply(Vector input) {
         return (Centroid)input;
       }
     });
@@ -123,7 +123,7 @@ public class StreamingKMeans implements Iterable<Centroid> {
   public UpdatableSearcher cluster(Matrix data) {
     return cluster(Iterables.transform(data, new Function<MatrixSlice, Centroid>() {
       @Override
-      public Centroid apply(@Nullable MatrixSlice input) {
+      public Centroid apply(MatrixSlice input) {
         // The key in a Centroid is actually the MatrixSlice's index.
         return Centroid.create(input.index(), input.vector());
       }
@@ -182,7 +182,7 @@ public class StreamingKMeans implements Iterable<Centroid> {
       // Assign the first datapoint to the first cluster.
       // Adding a vector to a searcher would normally just reference the copy,
       // but we could potentially mutate it and so we need to make a clone.
-      centroids.add(Iterables.get(datapoints, 0).clone());
+      centroids.add((Centroid)Iterables.get(datapoints, 0).clone());
       numCentroidsToSkip = 1;
       ++numProcessedDatapoints;
     }

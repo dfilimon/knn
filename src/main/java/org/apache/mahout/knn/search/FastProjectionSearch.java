@@ -3,11 +3,13 @@ package org.apache.mahout.knn.search;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.random.WeightedThing;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Does approximate nearest neighbor search by projecting the vectors similar to ProjectionSearch.

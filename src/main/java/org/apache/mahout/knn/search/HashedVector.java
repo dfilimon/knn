@@ -17,7 +17,6 @@
 
 package org.apache.mahout.knn.search;
 
-import com.google.common.base.Preconditions;
 import org.apache.mahout.math.Matrix;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.WeightedVector;
