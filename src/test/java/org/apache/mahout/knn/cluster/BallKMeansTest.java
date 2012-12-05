@@ -19,20 +19,30 @@ package org.apache.mahout.knn.cluster;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.search.BruteSearch;
+import org.apache.mahout.knn.search.Searcher;
+import org.apache.mahout.knn.search.UpdatableSearcher;
 import org.apache.mahout.math.*;
 import org.apache.mahout.math.function.Functions;
 import org.apache.mahout.math.function.VectorFunction;
 import org.apache.mahout.math.random.MultiNormal;
+import org.apache.mahout.math.random.WeightedThing;
 import org.junit.Test;
 
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class BallKMeansTest {
 
+  private static final int NUM_DATA_POINTS = 10000;
+  private static final int NUM_DIMENSIONS = 10;
+
+  private static Pair<List<Centroid>, List<Centroid>> syntheticData =
+      DataUtils.sampleMultiNormalHypercube(NUM_DIMENSIONS, NUM_DATA_POINTS);
   private static final int K1 = 100;
 
   @Test
@@ -49,6 +59,49 @@ public class BallKMeansTest {
     }
   }
 
+  @Test
+  public void testClustering() {
+    UpdatableSearcher searcher = new BruteSearch(new EuclideanDistanceMeasure());
+    BallKMeans clusterer = new BallKMeans(searcher, 1 << NUM_DIMENSIONS, 20);
+
+    long startTime = System.currentTimeMillis();
+    clusterer.cluster(syntheticData.getFirst());
+    long endTime = System.currentTimeMillis();
+
+    assertEquals("Total weight not preserved", totalWeight(syntheticData.getFirst()),
+        totalWeight(clusterer), 1e-9);
+
+    // and verify that each corner of the cube has a centroid very nearby
+    double maxWeight = 0;
+    for (Vector mean : syntheticData.getSecond()) {
+      WeightedThing<Vector> v = searcher.search(mean, 1).get(0);
+      maxWeight = Math.max(v.getWeight(), maxWeight);
+    }
+    assertTrue("Maximum weight too large " + maxWeight, maxWeight < 0.05);
+    double clusterTime = (endTime - startTime) / 1000.0;
+    System.out.printf("%s\n%.2f for clustering\n%.1f us per row\n\n",
+        searcher.getClass().getName(), clusterTime,
+        clusterTime / syntheticData.getFirst().size() * 1e6);
+
+    // verify that the total weight of the centroids near each corner is correct
+    double[] cornerWeights = new double[1 << NUM_DIMENSIONS];
+    Searcher trueFinder = new BruteSearch(new EuclideanDistanceMeasure());
+    for (Vector trueCluster : syntheticData.getSecond()) {
+      trueFinder.add(trueCluster);
+    }
+    for (Centroid centroid : clusterer) {
+      WeightedThing<Vector> closest = trueFinder.search(centroid, 1).get(0);
+      cornerWeights[((Centroid)closest.getValue()).getIndex()] += centroid.getWeight();
+    }
+    int expectedNumPoints = NUM_DATA_POINTS / (1 << NUM_DIMENSIONS);
+    for (double v : cornerWeights) {
+      System.out.printf("%f ", v);
+    }
+    System.out.println();
+    for (double v : cornerWeights) {
+      assertEquals(expectedNumPoints, v, 0);
+    }
+  }
   @Test
   public void testInitialization() {
     // start with super clusterable data
@@ -102,5 +155,17 @@ public class BallKMeansTest {
       }
     }
     return data;
+  }
+
+  private double totalWeight(Iterable<? extends Vector> data) {
+    double sum = 0;
+    for (Vector row : data) {
+      if (row instanceof WeightedVector) {
+        sum += ((WeightedVector)row).getWeight();
+      } else {
+        sum++;
+      }
+    }
+    return sum;
   }
 }
