@@ -227,8 +227,6 @@ public class StreamingKMeans implements Iterable<Centroid> {
           distanceCutoff, centroids.size());
 
       if (!collapseClusters && centroids.size() > estimatedNumClusters) {
-        // System.out.println("Collapsing clusters; num clusters " + estimatedNumClusters + " " +
-            // centroids.size());
         estimatedNumClusters = (int) Math.max(estimatedNumClusters,
             clusterLogFactor * Math.log(numProcessedDatapoints));
 
@@ -249,7 +247,6 @@ public class StreamingKMeans implements Iterable<Centroid> {
         if (centroids.size() > clusterOvershoot * estimatedNumClusters) {
           distanceCutoff *= beta;
         }
-        // System.out.println("Clusters collapsed; size now " + centroids.size());
       }
       if (!collapseClusters) {
         ++numProcessedDatapoints;
