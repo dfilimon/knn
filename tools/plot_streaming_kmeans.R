@@ -1,11 +1,10 @@
-plot_skm <- function(infile) {
+PlotStreamingKMeans <- function(infile) {
     print(infile)
 
     library(package=ggplot2)
 
-    skm <- read.table(infile, skip=1, fill=TRUE)
-
     cur_dev <- dev.cur()
+    skm <- read.table(infile, skip=1, fill=TRUE)
 
     plot_file <- paste(infile, '-numDataPointsSeen.png', sep='')
     print(plot_file)

@@ -1,4 +1,4 @@
-package org.apache.mahout.knn.experimental;
+package org.apache.mahout.knn.tools;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;

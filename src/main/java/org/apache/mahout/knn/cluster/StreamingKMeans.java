@@ -248,9 +248,7 @@ public class StreamingKMeans implements Iterable<Centroid> {
           distanceCutoff *= beta;
         }
       }
-      if (!collapseClusters) {
-        ++numProcessedDatapoints;
-      }
+      ++numProcessedDatapoints;
     }
 
     if (collapseClusters) {
