@@ -3,4 +3,4 @@ test and eventually get integrated into Mahout.
 
 See more details [here](https://github.com/dfilimon/knn/wiki).
 
-It's also the my Bachelor's project!
+It's also my Bachelor's project!
