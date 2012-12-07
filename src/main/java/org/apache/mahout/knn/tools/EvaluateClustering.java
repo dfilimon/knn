@@ -84,6 +84,13 @@ public class EvaluateClustering {
     System.out.println("Finished reading data");
   }
 
+  public static String getNameBase(String name) {
+    String filePath = name;
+    int lastSlash = filePath.lastIndexOf('/');
+    int postNextLastSlash = filePath.lastIndexOf('/', lastSlash - 1) + 1;
+    return filePath.substring(postNextLastSlash, lastSlash);
+  }
+
   public static void computeActualClusters(List<String> inputPaths,
                                            List<Centroid> reducedVectors,
                                            Map<String, Centroid> actualClusters) {
