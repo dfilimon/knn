@@ -19,13 +19,10 @@ package org.apache.mahout.knn.cluster;
 
 import com.google.common.base.Function;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.sun.istack.internal.Nullable;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.search.*;
-// import org.apache.mahout.knn.search.Brute;
 import org.apache.mahout.math.*;
 import org.apache.mahout.math.random.WeightedThing;
 import org.junit.Assert;
@@ -44,9 +41,9 @@ import static org.junit.runners.Parameterized.Parameters;
 
 @RunWith(value = Parameterized.class)
 public class StreamingKMeansTest {
-  private static final int NUM_DATA_POINTS = 10000;
+  private static final int NUM_DATA_POINTS = 32768;
   private static final int NUM_DIMENSIONS = 5;
-  private static final int NUM_PROJECTIONS = 6;
+  private static final int NUM_PROJECTIONS = 2;
   private static final int SEARCH_SIZE = 10;
 
   private static Pair<List<Centroid>, List<Centroid>> syntheticData =
@@ -64,13 +61,14 @@ public class StreamingKMeansTest {
   public static List<Object[]> generateData() {
     return Arrays.asList(new Object[][] {
         {new ProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE), true},
-        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
-            true},
-        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), true},
-        {new ProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE), false},
-        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
-            false},
-        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), false}
+//        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
+//            true},
+//        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), true},
+//        {new ProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
+//        false},
+//        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
+//            false},
+//        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), false}
     }
     );
   }
@@ -78,7 +76,7 @@ public class StreamingKMeansTest {
   @Test
   public void testClustering() {
     StreamingKMeans clusterer =
-        new StreamingKMeans(searcher, 1 << NUM_DIMENSIONS,
+        new StreamingKMeans(searcher, 10 * (1 << NUM_DIMENSIONS),
             DataUtils.estimateDistanceCutoff(syntheticData.getFirst()));
     long startTime = System.currentTimeMillis();
     if (allAtOnce) {
@@ -90,6 +88,8 @@ public class StreamingKMeansTest {
     }
     long endTime = System.currentTimeMillis();
 
+    System.out.printf("%s %s\n", searcher.getClass().getName(), searcher.getDistanceMeasure()
+        .getClass().getName());
     System.out.printf("Total number of clusters %d\n", clusterer.getCentroids().size());
 
     assertEquals("Total weight not preserved", totalWeight(syntheticData.getFirst()),

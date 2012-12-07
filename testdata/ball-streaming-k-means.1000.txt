@@ -1,0 +1,104 @@
+/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/bin/java -ea -Didea.launcher.port=7533 "-Didea.launcher.bin.path=/Applications/IntelliJ IDEA 11 CE.app/bin" -Dfile.encoding=UTF-8 -classpath "/Applications/IntelliJ IDEA 11 CE.app/lib/idea_rt.jar:/Applications/IntelliJ IDEA 11 CE.app/plugins/junit/lib/junit-rt.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/ant-javafx.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/dt.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/javafx-doclet.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/javafx-mx.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/jconsole.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/sa-jdi.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/lib/tools.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/charsets.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/deploy.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/htmlconverter.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/javaws.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/jce.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/jfr.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/jfxrt.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/JObjC.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/jsse.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/management-agent.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/plugin.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/resources.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/rt.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/ext/dnsns.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/ext/localedata.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/ext/sunec.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/ext/sunjce_provider.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/ext/sunpkcs11.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_10.jdk/Contents/Home/jre/lib/ext/zipfs.jar:/Users/dan/Google Drive/proj/4/mahout/knn/target/test-classes:/Users/dan/Google Drive/proj/4/mahout/knn/target/classes:/usr/local/hadoop/hadoop-ant-1.0.4.jar:/usr/local/hadoop/hadoop-core-1.0.4.jar:/usr/local/hadoop/hadoop-examples-1.0.4.jar:/usr/local/hadoop/hadoop-test-1.0.4.jar:/usr/local/hadoop/hadoop-tools-1.0.4.jar:/usr/local/hadoop/lib/asm-3.2.jar:/usr/local/hadoop/lib/aspectjrt-1.6.5.jar:/usr/local/hadoop/lib/aspectjtools-1.6.5.jar:/usr/local/hadoop/lib/commons-beanutils-1.7.0.jar:/usr/local/hadoop/lib/commons-beanutils-core-1.8.0.jar:/usr/local/hadoop/lib/commons-cli-1.2.jar:/usr/local/hadoop/lib/commons-codec-1.4.jar:/usr/local/hadoop/lib/commons-collections-3.2.1.jar:/usr/local/hadoop/lib/commons-configuration-1.6.jar:/usr/local/hadoop/lib/commons-daemon-1.0.1.jar:/usr/local/hadoop/lib/commons-digester-1.8.jar:/usr/local/hadoop/lib/commons-el-1.0.jar:/usr/local/hadoop/lib/commons-httpclient-3.0.1.jar:/usr/local/hadoop/lib/commons-io-2.1.jar:/usr/local/hadoop/lib/commons-lang-2.4.jar:/usr/local/hadoop/lib/commons-logging-1.1.1.jar:/usr/local/hadoop/lib/commons-logging-api-1.0.4.jar:/usr/local/hadoop/lib/commons-math-2.1.jar:/usr/local/hadoop/lib/commons-net-1.4.1.jar:/usr/local/hadoop/lib/core-3.1.1.jar:/usr/local/hadoop/lib/hadoop-capacity-scheduler-1.0.4.jar:/usr/local/hadoop/lib/hadoop-fairscheduler-1.0.4.jar:/usr/local/hadoop/lib/hadoop-thriftfs-1.0.4.jar:/usr/local/hadoop/lib/hsqldb-1.8.0.10.jar:/usr/local/hadoop/lib/jackson-core-asl-1.8.8.jar:/usr/local/hadoop/lib/jackson-mapper-asl-1.8.8.jar:/usr/local/hadoop/lib/jasper-compiler-5.5.12.jar:/usr/local/hadoop/lib/jasper-runtime-5.5.12.jar:/usr/local/hadoop/lib/jdeb-0.8.jar:/usr/local/hadoop/lib/jersey-core-1.8.jar:/usr/local/hadoop/lib/jersey-json-1.8.jar:/usr/local/hadoop/lib/jersey-server-1.8.jar:/usr/local/hadoop/lib/jets3t-0.6.1.jar:/usr/local/hadoop/lib/jetty-6.1.26.jar:/usr/local/hadoop/lib/jetty-util-6.1.26.jar:/usr/local/hadoop/lib/jsch-0.1.42.jar:/usr/local/hadoop/lib/junit-4.5.jar:/usr/local/hadoop/lib/kfs-0.2.2.jar:/usr/local/hadoop/lib/log4j-1.2.15.jar:/usr/local/hadoop/lib/mockito-all-1.8.5.jar:/usr/local/hadoop/lib/oro-2.0.8.jar:/usr/local/hadoop/lib/servlet-api-2.5-20081211.jar:/usr/local/hadoop/lib/slf4j-api-1.4.3.jar:/usr/local/hadoop/lib/slf4j-log4j12-1.4.3.jar:/usr/local/hadoop/lib/xmlenc-0.52.jar:/Users/dan/Google Drive/proj/4/mahout/mrunit/target/mrunit-1.0.0-SNAPSHOT-hadoop1.jar:/Users/dan/.m2/repository/com/google/guava/guava/13.0.1/guava-13.0.1.jar:/Users/dan/.m2/repository/org/apache/hadoop/hadoop-core/1.0.4/hadoop-core-1.0.4.jar:/Users/dan/.m2/repository/commons-cli/commons-cli/1.2/commons-cli-1.2.jar:/Users/dan/.m2/repository/xmlenc/xmlenc/0.52/xmlenc-0.52.jar:/Users/dan/.m2/repository/commons-httpclient/commons-httpclient/3.0.1/commons-httpclient-3.0.1.jar:/Users/dan/.m2/repository/junit/junit/4.8/junit-4.8.jar:/Users/dan/.m2/repository/commons-logging/commons-logging/1.0.3/commons-logging-1.0.3.jar:/Users/dan/.m2/repository/commons-codec/commons-codec/1.4/commons-codec-1.4.jar:/Users/dan/.m2/repository/org/apache/commons/commons-math/2.2/commons-math-2.2.jar:/Users/dan/.m2/repository/commons-configuration/commons-configuration/1.6/commons-configuration-1.6.jar:/Users/dan/.m2/repository/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar:/Users/dan/.m2/repository/commons-lang/commons-lang/2.6/commons-lang-2.6.jar:/Users/dan/.m2/repository/commons-digester/commons-digester/1.8/commons-digester-1.8.jar:/Users/dan/.m2/repository/commons-beanutils/commons-beanutils/1.7.0/commons-beanutils-1.7.0.jar:/Users/dan/.m2/repository/commons-beanutils/commons-beanutils-core/1.8.0/commons-beanutils-core-1.8.0.jar:/Users/dan/.m2/repository/commons-net/commons-net/1.4.1/commons-net-1.4.1.jar:/Users/dan/.m2/repository/oro/oro/2.0.8/oro-2.0.8.jar:/Users/dan/.m2/repository/org/mortbay/jetty/jetty/6.1.26/jetty-6.1.26.jar:/Users/dan/.m2/repository/org/mortbay/jetty/jetty-util/6.1.26/jetty-util-6.1.26.jar:/Users/dan/.m2/repository/org/mortbay/jetty/servlet-api/2.5-20081211/servlet-api-2.5-20081211.jar:/Users/dan/.m2/repository/tomcat/jasper-runtime/5.5.12/jasper-runtime-5.5.12.jar:/Users/dan/.m2/repository/tomcat/jasper-compiler/5.5.12/jasper-compiler-5.5.12.jar:/Users/dan/.m2/repository/org/mortbay/jetty/jsp-api-2.1/6.1.14/jsp-api-2.1-6.1.14.jar:/Users/dan/.m2/repository/org/mortbay/jetty/servlet-api-2.5/6.1.14/servlet-api-2.5-6.1.14.jar:/Users/dan/.m2/repository/org/mortbay/jetty/jsp-2.1/6.1.14/jsp-2.1-6.1.14.jar:/Users/dan/.m2/repository/org/eclipse/jdt/core/3.1.1/core-3.1.1.jar:/Users/dan/.m2/repository/ant/ant/1.6.5/ant-1.6.5.jar:/Users/dan/.m2/repository/commons-el/commons-el/1.0/commons-el-1.0.jar:/Users/dan/.m2/repository/net/java/dev/jets3t/jets3t/0.7.1/jets3t-0.7.1.jar:/Users/dan/.m2/repository/net/sf/kosmosfs/kfs/0.3/kfs-0.3.jar:/Users/dan/.m2/repository/hsqldb/hsqldb/1.8.0.10/hsqldb-1.8.0.10.jar:/Users/dan/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.0.1/jackson-mapper-asl-1.0.1.jar:/Users/dan/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.9.10/jackson-core-asl-1.9.10.jar:/Users/dan/Google Drive/proj/4/mahout/mahout-core/core/target/classes:/Users/dan/Google Drive/proj/4/mahout/mahout-core/math/target/classes:/Users/dan/.m2/repository/org/uncommons/maths/uncommons-maths/1.2.2/uncommons-maths-1.2.2.jar:/Users/dan/.m2/repository/org/slf4j/slf4j-api/1.6.1/slf4j-api-1.6.1.jar:/Users/dan/.m2/repository/commons-io/commons-io/2.4/commons-io-2.4.jar:/Users/dan/.m2/repository/com/thoughtworks/xstream/xstream/1.4.3/xstream-1.4.3.jar:/Users/dan/.m2/repository/xmlpull/xmlpull/1.1.3.1/xmlpull-1.1.3.1.jar:/Users/dan/.m2/repository/xpp3/xpp3_min/1.1.4c/xpp3_min-1.1.4c.jar:/Users/dan/.m2/repository/org/apache/lucene/lucene-core/3.6.0/lucene-core-3.6.0.jar:/Users/dan/.m2/repository/org/apache/lucene/lucene-analyzers/3.6.0/lucene-analyzers-3.6.0.jar:/Users/dan/.m2/repository/org/apache/mahout/commons/commons-cli/2.0-mahout/commons-cli-2.0-mahout.jar:/Users/dan/.m2/repository/org/hamcrest/hamcrest-all/1.1/hamcrest-all-1.1.jar" com.intellij.rt.execution.application.AppMain com.intellij.rt.execution.junit.JUnitStarter -ideVersion5 @/private/var/folders/mg/jm6zmcnd1sg7w34790t70_0w0000gn/T/idea_junit5908196151268705972.tmp
+Started reading data
+2012-11-30 19:40:20.657 java[11990:1303] Unable to load realm info from SCDynamicStore
+Finished reading data
+Clustering with BallKMeans
+0: 4090
+1: 14
+2: 344
+3: 13
+4: 45
+5: 15
+6: 736
+7: 138
+8: 3586
+9: 34
+10: 1
+11: 2527
+12: 3469
+13: 1722
+14: 14
+15: 88
+17: 215
+16: 60
+19: 539
+18: 1178
+Starting input vectors clustering.
+Finished input vectors clustering.
+Centroid 0 closest to actual cluster 6 [rec.sport.baseball]
+Centroid 1 closest to actual cluster 17 [alt.atheism]
+Centroid 2 closest to actual cluster 17 [alt.atheism]
+Centroid 3 closest to actual cluster 17 [alt.atheism]
+Centroid 4 closest to actual cluster 17 [alt.atheism]
+Centroid 5 closest to actual cluster 17 [alt.atheism]
+Centroid 6 closest to actual cluster 17 [alt.atheism]
+Centroid 7 closest to actual cluster 17 [alt.atheism]
+Centroid 8 closest to actual cluster 4 [talk.religion.misc]
+Centroid 9 closest to actual cluster 17 [alt.atheism]
+Centroid 10 closest to actual cluster 17 [alt.atheism]
+Centroid 11 closest to actual cluster 9 [sci.space]
+Centroid 12 closest to actual cluster 6 [rec.sport.baseball]
+Centroid 13 closest to actual cluster 11 [talk.politics.misc]
+Centroid 14 closest to actual cluster 17 [alt.atheism]
+Centroid 15 closest to actual cluster 17 [alt.atheism]
+Centroid 16 closest to actual cluster 17 [alt.atheism]
+Centroid 17 closest to actual cluster 17 [alt.atheism]
+Centroid 18 closest to actual cluster 18 [misc.forsale]
+Centroid 19 closest to actual cluster 17 [alt.atheism]
+Clustering with StreamingKMeans
+0: 1
+1: 4593
+2: 302
+3: 9
+4: 72
+5: 1535
+6: 1146
+7: 11
+8: 40
+9: 2
+10: 44
+11: 916
+12: 13
+13: 63
+14: 2259
+15: 3942
+17: 20
+16: 3
+19: 3840
+18: 17
+Starting input vectors clustering.
+Finished input vectors clustering.
+Centroid 0 closest to actual cluster 17 [alt.atheism]
+Centroid 1 closest to actual cluster 6 [rec.sport.baseball]
+Centroid 2 closest to actual cluster 17 [alt.atheism]
+Centroid 3 closest to actual cluster 17 [alt.atheism]
+Centroid 4 closest to actual cluster 17 [alt.atheism]
+Centroid 5 closest to actual cluster 18 [misc.forsale]
+Centroid 6 closest to actual cluster 17 [alt.atheism]
+Centroid 7 closest to actual cluster 17 [alt.atheism]
+Centroid 8 closest to actual cluster 17 [alt.atheism]
+Centroid 9 closest to actual cluster 17 [alt.atheism]
+Centroid 10 closest to actual cluster 17 [alt.atheism]
+Centroid 11 closest to actual cluster 15 [sci.med]
+Centroid 12 closest to actual cluster 17 [alt.atheism]
+Centroid 13 closest to actual cluster 17 [alt.atheism]
+Centroid 14 closest to actual cluster 10 [comp.sys.ibm.pc.hardware]
+Centroid 15 closest to actual cluster 6 [rec.sport.baseball]
+Centroid 16 closest to actual cluster 17 [alt.atheism]
+Centroid 17 closest to actual cluster 17 [alt.atheism]
+Centroid 18 closest to actual cluster 17 [alt.atheism]
+Centroid 19 closest to actual cluster 12 [sci.electronics]
+
+
+
+
+
+
+
+
+
+
+
+
+
+

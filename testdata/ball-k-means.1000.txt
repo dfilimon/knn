@@ -1,0 +1,46 @@
+Started reading data
+2012-11-30 19:27:19.387 java[11813:1703] Unable to load realm info from SCDynamicStore
+Finished reading data
+Clustering with BallKMeans
+0: 4668
+1: 17
+2: 152
+3: 846
+4: 23
+5: 13
+6: 2660
+7: 50
+8: 289
+9: 1
+10: 3918
+11: 32
+12: 1596
+13: 20
+14: 14
+15: 84
+17: 3948
+16: 18
+19: 12
+18: 467
+Starting input vectors clustering.
+Finished input vectors clustering.
+Centroid 0 closest to actual cluster 6 [rec.sport.baseball]
+Centroid 1 closest to actual cluster 17 [alt.atheism]
+Centroid 2 closest to actual cluster 17 [alt.atheism]
+Centroid 3 closest to actual cluster 17 [alt.atheism]
+Centroid 4 closest to actual cluster 17 [alt.atheism]
+Centroid 5 closest to actual cluster 17 [alt.atheism]
+Centroid 6 closest to actual cluster 10 [comp.sys.ibm.pc.hardware]
+Centroid 7 closest to actual cluster 17 [alt.atheism]
+Centroid 8 closest to actual cluster 17 [alt.atheism]
+Centroid 9 closest to actual cluster 17 [alt.atheism]
+Centroid 10 closest to actual cluster 12 [sci.electronics]
+Centroid 11 closest to actual cluster 17 [alt.atheism]
+Centroid 12 closest to actual cluster 18 [misc.forsale]
+Centroid 13 closest to actual cluster 17 [alt.atheism]
+Centroid 14 closest to actual cluster 17 [alt.atheism]
+Centroid 15 closest to actual cluster 17 [alt.atheism]
+Centroid 16 closest to actual cluster 17 [alt.atheism]
+Centroid 17 closest to actual cluster 6 [rec.sport.baseball]
+Centroid 18 closest to actual cluster 17 [alt.atheism]
+Centroid 19 closest to actual cluster 17 [alt.atheism]

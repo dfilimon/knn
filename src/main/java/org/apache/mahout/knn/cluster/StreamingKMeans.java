@@ -171,10 +171,12 @@ public class StreamingKMeans implements Iterable<Centroid> {
 
   private UpdatableSearcher clusterInternal(Iterable<Centroid> datapoints,
                                             boolean collapseClusters) {
+    int oldNumProcessedDataPoints = numProcessedDatapoints;
     // We clear the centroids we have in case of cluster collapse, the old clusters are the
     // datapoints but we need to re-cluster them.
     if (collapseClusters) {
       centroids.clear();
+      numProcessedDatapoints = 0;
     }
 
     int numCentroidsToSkip = 0;
@@ -221,7 +223,12 @@ public class StreamingKMeans implements Iterable<Centroid> {
         centroids.add(centroid);
       }
 
+      System.out.printf("%d %d %f %d\n", numProcessedDatapoints, estimatedNumClusters,
+          distanceCutoff, centroids.size());
+
       if (!collapseClusters && centroids.size() > estimatedNumClusters) {
+        // System.out.println("Collapsing clusters; num clusters " + estimatedNumClusters + " " +
+            // centroids.size());
         estimatedNumClusters = (int) Math.max(estimatedNumClusters,
             clusterLogFactor * Math.log(numProcessedDatapoints));
 
@@ -242,10 +249,15 @@ public class StreamingKMeans implements Iterable<Centroid> {
         if (centroids.size() > clusterOvershoot * estimatedNumClusters) {
           distanceCutoff *= beta;
         }
+        // System.out.println("Clusters collapsed; size now " + centroids.size());
       }
       if (!collapseClusters) {
         ++numProcessedDatapoints;
       }
+    }
+
+    if (collapseClusters) {
+      numProcessedDatapoints = oldNumProcessedDataPoints;
     }
 
     // Normally, iterating through the searcher produces Vectors,
