@@ -52,12 +52,12 @@ public class StreamingKMeans implements Iterable<Centroid> {
   private int numProcessedDatapoints = 0;
 
   /**
-   * Calls StreamingKMeans(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.2).
+   * Calls StreamingKMeans(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.5).
    * @see StreamingKMeans#StreamingKMeans(org.apache.mahout.knn.search.UpdatableSearcher, int, double, double, double, double)
    */
   public StreamingKMeans(UpdatableSearcher searcher, int estimatedNumClusters,
                          double initialDistanceCutoff) {
-    this(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.2);
+    this(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.5);
   }
 
   /**
@@ -223,8 +223,10 @@ public class StreamingKMeans implements Iterable<Centroid> {
         centroids.add(centroid);
       }
 
+      /*
       System.out.printf("%d %d %f %d\n", numProcessedDatapoints, estimatedNumClusters,
           distanceCutoff, centroids.size());
+          */
 
       if (!collapseClusters && centroids.size() > estimatedNumClusters) {
         estimatedNumClusters = (int) Math.max(estimatedNumClusters,
@@ -260,5 +262,8 @@ public class StreamingKMeans implements Iterable<Centroid> {
     return centroids;
   }
 
+  public double getDistanceCutoff() {
+    return distanceCutoff;
+  }
 }
 

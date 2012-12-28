@@ -41,8 +41,8 @@ import static org.junit.runners.Parameterized.Parameters;
 
 @RunWith(value = Parameterized.class)
 public class StreamingKMeansTest {
-  private static final int NUM_DATA_POINTS = 32768;
-  private static final int NUM_DIMENSIONS = 5;
+  private static final int NUM_DATA_POINTS = 2 * 32768;
+  private static final int NUM_DIMENSIONS = 6;
   private static final int NUM_PROJECTIONS = 2;
   private static final int SEARCH_SIZE = 10;
 
@@ -74,9 +74,36 @@ public class StreamingKMeansTest {
   }
 
   @Test
+  public void testAverageDistanceCutoff() {
+    double avgDistanceCutoff = 0;
+    double avgNumClusters = 0;
+    int numTests = 8;
+    System.out.println("Distance cutoff\n");
+    for (int i = 0; i < numTests; ++i) {
+      Pair<List<Centroid>, List<Centroid>> syntheticData = DataUtils.sampleMultiNormalHypercube
+          (NUM_DIMENSIONS, NUM_DATA_POINTS);
+      int numStreamingClusters = (int)Math.log(syntheticData.getFirst().size()) * (1 <<
+          NUM_DIMENSIONS);
+      StreamingKMeans clusterer =
+          new StreamingKMeans(searcher, numStreamingClusters, DataUtils.estimateDistanceCutoff
+              (syntheticData.getFirst()));
+      clusterer.cluster(syntheticData.getFirst());
+      avgDistanceCutoff += clusterer.getDistanceCutoff();
+      avgNumClusters += clusterer.getEstimatedNumClusters();
+      System.out.printf("%d %f\n", i, clusterer.getDistanceCutoff());
+    }
+    avgDistanceCutoff /= numTests;
+    avgNumClusters /= numTests;
+    System.out.printf("Final: distanceCutoff: %f estNumClusters: %f\n", avgDistanceCutoff, avgNumClusters);
+  }
+
+  @Test
   public void testClustering() {
+    System.out.printf("k log n = %d\n", (int)Math.log(syntheticData.getFirst().size()) * (1 <<
+        NUM_DIMENSIONS));
     StreamingKMeans clusterer =
-        new StreamingKMeans(searcher, 10 * (1 << NUM_DIMENSIONS),
+        new StreamingKMeans(searcher,
+            (int)Math.log(syntheticData.getFirst().size()) * (1 << NUM_DIMENSIONS),
             DataUtils.estimateDistanceCutoff(syntheticData.getFirst()));
     long startTime = System.currentTimeMillis();
     if (allAtOnce) {
@@ -113,7 +140,7 @@ public class StreamingKMeansTest {
     for (Vector trueCluster : syntheticData.getSecond()) {
       trueFinder.add(trueCluster);
     }
-    for (Centroid centroid : clusterer.getCentroidsIterable()) {
+    for (Centroid centroid : clusterer) {
       WeightedThing<Vector> closest = trueFinder.search(centroid, 1).get(0);
       cornerWeights[((Centroid)closest.getValue()).getIndex()] += centroid.getWeight();
     }

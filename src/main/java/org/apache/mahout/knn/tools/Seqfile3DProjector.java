@@ -8,6 +8,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.mahout.knn.search.ProjectionSearch;
 import org.apache.mahout.math.Centroid;
+import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
@@ -38,10 +39,15 @@ public class Seqfile3DProjector {
       }
       // Project the vector.
       Vector vectorValue = value.get().clone();
-      writer.printf("%f %f %f\n", vectorValue.dot(basisVectors.get(0)),
-          vectorValue.dot(basisVectors.get(1)), vectorValue.dot(basisVectors.get(2)));
+      Vector projectedVector = new DenseVector(3);
+      for (int i = 0; i < 3; ++i) {
+        projectedVector.set(i, vectorValue.dot(basisVectors.get(i)));
+      }
+      projectedVector = projectedVector.normalize();
+      writer.printf("%f %f %f\n", projectedVector.get(0), projectedVector.get(1),
+          projectedVector.get(2));
       // Update the real center.
-      String stringKey = EvaluateClustering.getNameBase(key.toString());
+      String stringKey = ""; // EvaluateClustering.getNameBase(key.toString());
       Centroid centroid = actualClusters.remove(stringKey);
       if (centroid == null) {
         centroid = new Centroid(1, vectorValue, 1);

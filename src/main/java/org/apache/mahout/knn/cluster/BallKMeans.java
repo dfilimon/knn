@@ -159,7 +159,7 @@ public class BallKMeans implements Iterable<Centroid> {
       seedSelector.set(i, w);
     }
 
-    // From here, seeds are selected with probablity proportional to:
+    // From here, seeds are selected with probability proportional to:
     //
     // r_i = min_{c_j} || x_i - c_j ||^2
     //
