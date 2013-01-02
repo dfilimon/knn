@@ -52,7 +52,7 @@ public class StreamingKMeansMapper extends Mapper<Writable, VectorWritable,
     searcher = searcherFromConfiguration(conf);
     int numClusters = conf.getInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, 1);
     clusterer = new StreamingKMeans(searcher, numClusters,
-        conf.getFloat(StreamingKMeansDriver.ESTIMATE_DISTANCE_CUTOFF, (float) 10e-6));
+        conf.getFloat(StreamingKMeansDriver.ESTIMATED_DISTANCE_CUTOFF, (float) 10e-6));
   }
 
   @Override
@@ -63,25 +63,26 @@ public class StreamingKMeansMapper extends Mapper<Writable, VectorWritable,
   @Override
   public void cleanup(Context context) throws IOException, InterruptedException {
     // All outputs have the same key to go to the same final reducer.
-    for (Centroid centroid : clusterer.getCentroidsIterable()) {
+    for (Centroid centroid : clusterer) {
       context.write(new IntWritable(0), new CentroidWritable(centroid));
     }
   }
 
   @SuppressWarnings("ConstantConditions")
   public static UpdatableSearcher searcherFromConfiguration(Configuration conf) {
-    DistanceMeasure distanceMeasure = null;
+    DistanceMeasure distanceMeasure;
     String distanceMeasureClass = conf.get(DefaultOptionCreator.DISTANCE_MEASURE_OPTION);
     try {
       distanceMeasure = (DistanceMeasure)Class.forName(distanceMeasureClass).newInstance();
     } catch (Exception e) {
-      throw new RuntimeException("Failed to instantiate distanceMeasure" + distanceMeasureClass);
+      log.error("Failed to instantiate distanceMeasure", e);
+      throw new RuntimeException("Failed to instantiate distanceMeasure", e);
     }
 
     int numProjections =  conf.getInt(StreamingKMeansDriver.NUM_PROJECTIONS_OPTION, 20);
     int searchSize =  conf.getInt(StreamingKMeansDriver.SEARCH_SIZE_OPTION, 10);
 
-    UpdatableSearcher searcher = null;
+    UpdatableSearcher searcher;
     String searcherClass = conf.get(StreamingKMeansDriver.SEARCHER_CLASS_OPTION);
     try {
       if (searcherClass.equals(BruteSearch.class.getName())) {
@@ -95,10 +96,11 @@ public class StreamingKMeansMapper extends Mapper<Writable, VectorWritable,
         searcher = (UpdatableSearcher)Class.forName(searcherClass).getConstructor(DistanceMeasure
             .class, int.class).newInstance(distanceMeasure, searchSize);
       } else {
-        log.error("Unknown searcher class instantiation requested "  + searcherClass);
+        log.error("Unknown searcher class instantiation requested {}", searcherClass);
         throw new InstantiationException();
       }
     } catch (Exception e) {
+      log.error("Failed to instantiate searcher", e);
       throw new RuntimeException("Failed to instantiate searcher.", e);
     }
     return searcher;

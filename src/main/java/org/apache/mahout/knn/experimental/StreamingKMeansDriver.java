@@ -45,6 +45,10 @@ import java.io.IOException;
 public final class StreamingKMeansDriver extends AbstractJob {
   // TODO(dfilimon): These constants could move to DefaultOptionCreator.
   /**
+   *
+   */
+  public static final String ESTIMATED_NUM_MAP_CLUSTERS = "estimatedNumMapClusters";
+  /**
    * The Searcher class when performing nearest neighbor search in StreamingKMeans.
    * Defaults to BruteSearch.
    */
@@ -84,7 +88,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
    * @see org.apache.mahout.knn.cluster.StreamingKMeans
    * Defaults to 10e-6.
    */
-  public static final String ESTIMATE_DISTANCE_CUTOFF = "estimateDistanceCutoff";
+  public static final String ESTIMATED_DISTANCE_CUTOFF = "estimatedDistanceCutoff";
 
   private static final Logger log = LoggerFactory.getLogger(StreamingKMeansDriver.class);
 
@@ -93,10 +97,12 @@ public final class StreamingKMeansDriver extends AbstractJob {
     addInputOption();
     addOutputOption();
     addOption(DefaultOptionCreator.overwriteOption().create());
-    addOption(DefaultOptionCreator
-        .numClustersOption()
-        .withDescription(
-            "The k in k-Means. Approximately this many clusters will be generated.").create());
+    addOption(DefaultOptionCreator.numClustersOption().withDescription(
+        "The k in k-Means. Approximately this many clusters will be generated.").create());
+    addOption("estimatedNumMapClusters", "km", "The estimated number of clusters to use for the " +
+        "Map phase of the job when running StreamingKMeans. This should be around k * log(n), " +
+        "where k is the final number of clusters and n is the total number of data points to " +
+        "cluster.");
     addOption(DefaultOptionCreator.distanceMeasureOption().create());
     addOption("searcherClass", "sc", "The type of searcher to be used when performing nearest " +
         "neighbor searches. Defaults to BruteSearch.", "org.apache.mahout.knn.search" +
@@ -110,7 +116,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
         "searchSize. If no value is given, defaults to 10.", "10");
     addOption("maxNumIterations", "i", "The maximum number of iterations to run for the " +
         "BallKMeans algorithm used by the reducer.", "10");
-    addOption("estimateDistanceCutoff", "e", "The initial estimated distance cutoff between two " +
+    addOption("estimatedDistanceCutoff", "e", "The initial estimated distance cutoff between two " +
         "points for forming new clusters", "10e-6");
 
     if (parseArguments(args) == null) {
@@ -134,6 +140,17 @@ public final class StreamingKMeansDriver extends AbstractJob {
     Preconditions.checkNotNull(numClustersStr, "No number of clusters specified");
     int numClusters = Integer.parseInt(numClustersStr);
     Preconditions.checkArgument(numClusters > 0, "Invalid number of clusters requested");
+
+    String estimatedNumMapClustersStr = getOption(ESTIMATED_NUM_MAP_CLUSTERS);
+    Preconditions.checkNotNull(estimatedNumMapClustersStr);
+    int estimatedNumMapClusters = Integer.parseInt(estimatedNumMapClustersStr);
+    Preconditions.checkArgument(estimatedNumMapClusters > 0, "Invalid number of estimated map " +
+        "clusters.");
+
+    String estimatedDistanceCutoffStr = getOption(ESTIMATED_DISTANCE_CUTOFF);
+    Preconditions.checkNotNull(estimatedDistanceCutoffStr);
+    float estimatedDistanceCutoff = Float.parseFloat(estimatedDistanceCutoffStr);
+    Preconditions.checkArgument(estimatedDistanceCutoff > 0, "Invalid estimated distance cutoff.");
 
     String measureClass = getOption(DefaultOptionCreator.DISTANCE_MEASURE_OPTION);
     if (measureClass == null) {
@@ -183,15 +200,19 @@ public final class StreamingKMeansDriver extends AbstractJob {
     Preconditions.checkNotNull(maxNumIterationsStr, "No maximum number of iterations specified");
     int maxNumIterations = Integer.parseInt(maxNumIterationsStr);
 
-    configureOptionsForWorkers(getConf(), numClusters, measureClass, searcherClass, searchSize,
-        numProjections, maxNumIterations);
+    configureOptionsForWorkers(getConf(), numClusters, 10 * numClusters,  estimatedDistanceCutoff,
+        measureClass, searcherClass,  searchSize, numProjections, maxNumIterations);
   }
 
-  public static void configureOptionsForWorkers(Configuration conf, int numClusters,
+  public static void configureOptionsForWorkers(Configuration conf,
+                                                int numClusters, int estimatedNumMapClusters,
+                                                float estimatedDistanceCutoff,
                                                 String measureClass, String searcherClass,
                                                 int searchSize, int numProjections,
                                                 int maxNumIterations) {
     conf.setInt(DefaultOptionCreator.NUM_CLUSTERS_OPTION, numClusters);
+    conf.setInt(ESTIMATED_NUM_MAP_CLUSTERS, estimatedNumMapClusters);
+    conf.setFloat(ESTIMATED_DISTANCE_CUTOFF, estimatedDistanceCutoff);
     try {
       Class.forName(measureClass);
     }  catch (ClassNotFoundException e) {
@@ -207,6 +228,10 @@ public final class StreamingKMeansDriver extends AbstractJob {
     conf.setInt(SEARCH_SIZE_OPTION, searchSize);
     conf.setInt(NUM_PROJECTIONS_OPTION, numProjections);
     conf.setInt(MAX_NUM_ITERATIONS, maxNumIterations);
+    log.info("Parameters are: numClusters {}; estimatedNumMapClusters {}; estimatedDistanceCutoff" +
+        " {}; measureClass {}; searcherClass {}; searcherSize {}; numProjections {}; " +
+        "maxNumIterations {}", numClusters, estimatedNumMapClusters, estimatedDistanceCutoff,
+        measureClass, searcherClass, searchSize, numProjections, maxNumIterations);
   }
 
   /**
@@ -220,7 +245,8 @@ public final class StreamingKMeansDriver extends AbstractJob {
    */
   public static void run(Configuration conf, Path input, Path output)
       throws IOException, InterruptedException, ClassNotFoundException {
-    log.info("Starting StreamingKMeans clustering");
+    log.info("Starting StreamingKMeans clustering for vectors in {}; results are output to {}",
+        input.toString(), output.toString());
 
     // Prepare Job for submission.
     Job job = new Job(conf, "StreamingKMeans");
@@ -256,7 +282,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
       throw new InterruptedException("StreamingKMeans interrupted");
     }
 
-    log.info("StreamingKMeans clustering complete");
+    log.info("StreamingKMeans clustering complete. Results are in {}", output.toString());
   }
 
   /**

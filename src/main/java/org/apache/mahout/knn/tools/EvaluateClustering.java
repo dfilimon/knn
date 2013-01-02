@@ -3,13 +3,13 @@ package org.apache.mahout.knn.tools;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.mahout.clustering.OnlineGaussianAccumulator;
-import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.cluster.BallKMeans;
@@ -34,8 +34,6 @@ public class EvaluateClustering {
   private static final int NUM_CLUSTERS = 20;
   private static final int MAX_NUM_ITERATIONS = 10;
 
-  private int reducedDimension;
-
   // Map of the actual clusters (the clusters being the means in each OnlineGaussianAccumulator).
   private Map<String, OnlineGaussianAccumulator> actualClusters = Maps.newHashMap();
   // The list of input paths (for each document, its path).
@@ -56,7 +54,6 @@ public class EvaluateClustering {
   }
 
   public EvaluateClustering(String inPath, int reducedDimension) throws IOException, IllegalAccessException, InstantiationException {
-    this.reducedDimension = reducedDimension;
     getInputVectors(inPath, reducedDimension, inputPaths,
         inputVectors, reducedVectors);
     computeActualClusters(inputPaths, reducedVectors, actualClusters);
@@ -151,14 +148,14 @@ public class EvaluateClustering {
     }
     return centroidMap;
   }
-  
+
   public static void generateCSVFromVectors(List<? extends Vector> datapoints,
                                             String outPath) throws FileNotFoundException {
     if (datapoints.isEmpty()) {
       return;
     }
     int numDimensions = datapoints.get(0).size();
-    PrintStream outputStream = new PrintStream(new FileOutputStream(outPath));
+    PrintStream  outputStream = new PrintStream(new FileOutputStream(outPath));
     for (int i = 0; i < numDimensions; ++i) {
       outputStream.printf("x%d", i);
       if (i < numDimensions - 1) {
@@ -187,11 +184,10 @@ public class EvaluateClustering {
       return;
     }
     int numDimensions = datapoints.get(0).size();
-    PrintStream outputStream = new PrintStream(new FileOutputStream(outPath));
+    PrintStream  outputStream = new PrintStream(new FileOutputStream(outPath));
     outputStream.printf("%%%%MatrixMarket matrix coordinate real general\n");
     int numNonZero = 0;
-    for (int i = 0; i < datapoints.size(); ++i) {
-      Vector datapoint = datapoints.get(i);
+    for (Vector datapoint : datapoints) {
       for (int j = 0; j < numDimensions; ++j) {
         double coord = datapoint.get(j);
         if (coord != 0) {
