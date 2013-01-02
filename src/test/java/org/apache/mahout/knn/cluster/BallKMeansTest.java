@@ -17,7 +17,6 @@
 
 package org.apache.mahout.knn.cluster;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
@@ -39,7 +38,8 @@ import static org.junit.Assert.assertTrue;
 public class BallKMeansTest {
 
   private static final int NUM_DATA_POINTS = 10000;
-  private static final int NUM_DIMENSIONS = 10;
+  private static final int NUM_DIMENSIONS = 4;
+  private static final int NUM_ITERATIONS = 20;
 
   private static Pair<List<Centroid>, List<Centroid>> syntheticData =
       DataUtils.sampleMultiNormalHypercube(NUM_DIMENSIONS, NUM_DATA_POINTS);
@@ -62,7 +62,7 @@ public class BallKMeansTest {
   @Test
   public void testClustering() {
     UpdatableSearcher searcher = new BruteSearch(new EuclideanDistanceMeasure());
-    BallKMeans clusterer = new BallKMeans(searcher, 1 << NUM_DIMENSIONS, 20);
+    BallKMeans clusterer = new BallKMeans(searcher, 1 << NUM_DIMENSIONS, NUM_ITERATIONS);
 
     long startTime = System.currentTimeMillis();
     clusterer.cluster(syntheticData.getFirst());
@@ -71,7 +71,8 @@ public class BallKMeansTest {
     assertEquals("Total weight not preserved", totalWeight(syntheticData.getFirst()),
         totalWeight(clusterer), 1e-9);
 
-    // and verify that each corner of the cube has a centroid very nearby
+    // Verify that each corner of the cube has a centroid very nearby.
+    // This is probably FALSE for large-dimensional spaces!
     double maxWeight = 0;
     for (Vector mean : syntheticData.getSecond()) {
       WeightedThing<Vector> v = searcher.search(mean, 1).get(0);

@@ -65,12 +65,20 @@ public class BallKMeans implements Iterable<Centroid> {
   // greater, we consider it an outlier and we don't use it.
   private final double trimFraction;
 
+  // When using trimFraction, the weight of each centroid will not be the sum of the weights of
+  // the vectors assigned to that cluster because outliers are not used to compute the updated
+  // centroid.
+  // So, the total weight is probably wrong. This can be fixed by doing another pass over the
+  // data points and adjusting the weights of each centroid. This doesn't update the coordinates
+  // of the centroids, but is useful if the weights matter.
+  private final boolean correctWeights;
+
   public BallKMeans(UpdatableSearcher searcher, int numClusters, int maxNumIterations) {
-    this(searcher, numClusters, maxNumIterations, 0.9);
+    this(searcher, numClusters, maxNumIterations, 0.9, true);
   }
 
   public BallKMeans(UpdatableSearcher searcher, int numClusters, int maxNumIterations,
-                    @SuppressWarnings("SameParameterValue") double trimFraction) {
+                    @SuppressWarnings("SameParameterValue") double trimFraction, boolean correctWeights) {
     Preconditions.checkArgument(searcher.size() == 0, "Searcher must be empty initially to " +
         "populate with centroids");
     Preconditions.checkArgument(numClusters > 0, "The requested number of clusters must be " +
@@ -81,6 +89,7 @@ public class BallKMeans implements Iterable<Centroid> {
     this.numClusters = numClusters;
     this.maxNumIterations = maxNumIterations;
     this.trimFraction = trimFraction;
+    this.correctWeights = correctWeights;
   }
 
   public UpdatableSearcher cluster(List<? extends WeightedVector> datapoints) {
@@ -149,7 +158,7 @@ public class BallKMeans implements Iterable<Centroid> {
       seedSelector.add(i, selectionProbability);
     }
 
-    Centroid c_1 = new Centroid((WeightedVector)datapoints.get(seedSelector.sample()).clone());
+    Centroid c_1 = new Centroid(datapoints.get(seedSelector.sample()).clone());
     c_1.setIndex(0);
     // Construct a set of weighted things which can be used for random selection.  Initial weights are
     // set to the squared distance from c_1
@@ -170,7 +179,8 @@ public class BallKMeans implements Iterable<Centroid> {
     while (centroids.size() < numClusters) {
       // Select according to weights.
       int seedIndex = seedSelector.sample();
-      Centroid nextSeed = new Centroid((WeightedVector)datapoints.get(seedIndex).clone());
+      Centroid nextSeed = new Centroid(datapoints.get(seedIndex));
+      // (WeightedVector)datapoints.get(seedIndex).clone());
       nextSeed.setIndex(clusterIndex++);
       centroids.add(nextSeed);
       // Don't select this one again.
@@ -257,7 +267,15 @@ public class BallKMeans implements Iterable<Centroid> {
       centroids.addAll(newCentroids);
     }
 
-    // TODO: extra pass to ensure correct total weights
+    if (correctWeights) {
+      for (Vector v : centroids) {
+        ((Centroid)v).setWeight(0);
+      }
+      for (WeightedVector datapoint : datapoints) {
+        Centroid closestCentroid = (Centroid)centroids.search(datapoint, 1).get(0).getValue();
+        closestCentroid.setWeight(closestCentroid.getWeight() + datapoint.getWeight());
+      }
+    }
   }
 
   @Override
