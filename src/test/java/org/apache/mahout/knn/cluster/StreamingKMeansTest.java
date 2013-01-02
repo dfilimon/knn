@@ -17,24 +17,23 @@
 
 package org.apache.mahout.knn.cluster;
 
-import com.google.common.base.Function;
 
-import com.google.common.collect.Lists;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.search.*;
 import org.apache.mahout.math.*;
 import org.apache.mahout.math.random.WeightedThing;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.runners.Parameterized.Parameters;
 
@@ -55,20 +54,22 @@ public class StreamingKMeansTest {
   public StreamingKMeansTest(UpdatableSearcher searcher, boolean allAtOnce) {
     this.searcher = searcher;
     this.allAtOnce = allAtOnce;
+    LoggerContext loggerContext = (LoggerContext)LoggerFactory.getILoggerFactory();
+    loggerContext.getLogger(StreamingKMeans.class).setLevel(Level.INFO);
   }
 
   @Parameters
   public static List<Object[]> generateData() {
     return Arrays.asList(new Object[][] {
         {new ProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE), true},
-//        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
-//            true},
-//        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), true},
-//        {new ProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
-//        false},
-//        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
-//            false},
-//        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), false}
+        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
+            true},
+        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), true},
+        {new ProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
+        false},
+        {new FastProjectionSearch(new EuclideanDistanceMeasure(), NUM_PROJECTIONS, SEARCH_SIZE),
+            false},
+        {new LocalitySensitiveHashSearch(new EuclideanDistanceMeasure(), SEARCH_SIZE), false}
     }
     );
   }
@@ -78,7 +79,7 @@ public class StreamingKMeansTest {
     double avgDistanceCutoff = 0;
     double avgNumClusters = 0;
     int numTests = 8;
-    System.out.println("Distance cutoff\n");
+    System.out.printf("Distance cutoff for %s\n", searcher.getClass().getName());
     for (int i = 0; i < numTests; ++i) {
       Pair<List<Centroid>, List<Centroid>> syntheticData = DataUtils.sampleMultiNormalHypercube
           (NUM_DIMENSIONS, NUM_DATA_POINTS);

@@ -25,6 +25,8 @@ import org.apache.mahout.common.RandomUtils;
 import org.apache.mahout.knn.search.UpdatableSearcher;
 import org.apache.mahout.math.*;
 import org.apache.mahout.math.random.WeightedThing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -32,8 +34,16 @@ import java.util.List;
 import java.util.Random;
 
 public class StreamingKMeans implements Iterable<Centroid> {
+  /**
+   * Parameter that controls the growth of the distanceCutoff. After n increases of the
+   * distanceCutoff starting at d0, the final value is d0 * beta^n.
+   */
   private double beta;
 
+  /**
+   * Multiplying clusterLogFactor with numProcessedDatapoints gets an estimate of the suggested
+   * number of clusters
+   */
   private double clusterLogFactor;
 
   private double clusterOvershoot;
@@ -42,22 +52,26 @@ public class StreamingKMeans implements Iterable<Centroid> {
 
   private UpdatableSearcher centroids;
 
-  // this is the current value of the characteristic size.  Points
+  // this is the current value of the distance cutoff.  Points
   // which are much closer than this to a centroid will stick to it
   // almost certainly. Points further than this to any centroid will
   // form a new cluster.
-  private double distanceCutoff = 10e-4;
-
+  private double distanceCutoff = 10e-6;
 
   private int numProcessedDatapoints = 0;
 
+  // Logs the progress of the clustering.
+  private Logger progressLogger;
+
   /**
    * Calls StreamingKMeans(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.5).
-   * @see StreamingKMeans#StreamingKMeans(org.apache.mahout.knn.search.UpdatableSearcher, int, double, double, double, double)
+   * @see StreamingKMeans#StreamingKMeans(org.apache.mahout.knn.search.UpdatableSearcher, int,
+   * double, double, double, double, Logger)
    */
   public StreamingKMeans(UpdatableSearcher searcher, int estimatedNumClusters,
                          double initialDistanceCutoff) {
-    this(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.5);
+    this(searcher, estimatedNumClusters, initialDistanceCutoff, 1.3, 10, 0.5,
+        LoggerFactory.getLogger(StreamingKMeans.class));
   }
 
   /**
@@ -80,13 +94,14 @@ public class StreamingKMeans implements Iterable<Centroid> {
    */
   public StreamingKMeans(UpdatableSearcher searcher, int estimatedNumClusters,
                          double initialDistanceCutoff, double beta, double clusterLogFactor,
-                         double clusterOvershoot) {
+                         double clusterOvershoot, Logger logger) {
     this.centroids = searcher;
     this.estimatedNumClusters = estimatedNumClusters;
     this.distanceCutoff = initialDistanceCutoff;
     this.beta = beta;
     this.clusterLogFactor = clusterLogFactor;
     this.clusterOvershoot = clusterOvershoot;
+    this.progressLogger = logger;
   }
 
   public UpdatableSearcher getCentroids() {
@@ -101,16 +116,6 @@ public class StreamingKMeans implements Iterable<Centroid> {
   @Override
   public Iterator<Centroid> iterator() {
     return Iterators.transform(centroids.iterator(), new Function<Vector, Centroid>() {
-      @Override
-      public Centroid apply(Vector input) {
-        return (Centroid)input;
-      }
-    });
-  }
-
-  @Deprecated
-  public Iterable<Centroid> getCentroidsIterable() {
-    return Iterables.transform(centroids, new Function<Vector, Centroid>() {
       @Override
       public Centroid apply(Vector input) {
         return (Centroid)input;
@@ -165,10 +170,6 @@ public class StreamingKMeans implements Iterable<Centroid> {
     return estimatedNumClusters;
   }
 
-  public void setEstimatedNumClusters(int estimatedNumClusters) {
-    this.estimatedNumClusters = estimatedNumClusters;
-  }
-
   private UpdatableSearcher clusterInternal(Iterable<Centroid> datapoints,
                                             boolean collapseClusters) {
     int oldNumProcessedDataPoints = numProcessedDatapoints;
@@ -184,7 +185,7 @@ public class StreamingKMeans implements Iterable<Centroid> {
       // Assign the first datapoint to the first cluster.
       // Adding a vector to a searcher would normally just reference the copy,
       // but we could potentially mutate it and so we need to make a clone.
-      centroids.add((Centroid)Iterables.get(datapoints, 0).clone());
+      centroids.add(Iterables.get(datapoints, 0).clone());
       numCentroidsToSkip = 1;
       ++numProcessedDatapoints;
     }
@@ -223,10 +224,10 @@ public class StreamingKMeans implements Iterable<Centroid> {
         centroids.add(centroid);
       }
 
-      /*
-      System.out.printf("%d %d %f %d\n", numProcessedDatapoints, estimatedNumClusters,
+      progressLogger.debug("numProcessedDataPoints: {}, estimatedNumClusters: {}, " +
+          "distanceCutoff: {}, numCentroids: {}", numProcessedDatapoints, estimatedNumClusters,
           distanceCutoff, centroids.size());
-          */
+
 
       if (!collapseClusters && centroids.size() > estimatedNumClusters) {
         estimatedNumClusters = (int) Math.max(estimatedNumClusters,
