@@ -1,10 +1,7 @@
 package org.apache.mahout.knn.tools;
 
 import com.google.common.base.Function;
-import org.apache.mahout.clustering.OnlineGaussianAccumulator;
-import sun.reflect.generics.scope.ConstructorScope;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
 public class MapUtils {
