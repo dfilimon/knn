@@ -17,6 +17,8 @@
 
 package org.apache.mahout.knn.experimental;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -31,8 +33,10 @@ import org.apache.mahout.common.AbstractJob;
 import org.apache.mahout.common.HadoopUtil;
 import org.apache.mahout.common.commandline.DefaultOptionCreator;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
+import org.apache.mahout.knn.cluster.StreamingKMeans;
 import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.knn.search.LocalitySensitiveHashSearch;
+import org.apache.mahout.knn.tools.EvaluateClustering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,25 +103,25 @@ public final class StreamingKMeansDriver extends AbstractJob {
     addOption(DefaultOptionCreator.overwriteOption().create());
     addOption(DefaultOptionCreator.numClustersOption().withDescription(
         "The k in k-Means. Approximately this many clusters will be generated.").create());
-    addOption("estimatedNumMapClusters", "km", "The estimated number of clusters to use for the " +
+    addOption(ESTIMATED_NUM_MAP_CLUSTERS, "km", "The estimated number of clusters to use for the " +
         "Map phase of the job when running StreamingKMeans. This should be around k * log(n), " +
         "where k is the final number of clusters and n is the total number of data points to " +
         "cluster.");
     addOption(DefaultOptionCreator.distanceMeasureOption().create());
-    addOption("searcherClass", "sc", "The type of searcher to be used when performing nearest " +
-        "neighbor searches. Defaults to BruteSearch.", "org.apache.mahout.knn.search" +
-        ".BruteSearch");
-    addOption("numProjections", "np", "The number of projections considered in estimating the " +
+    addOption(SEARCHER_CLASS_OPTION, "sc", "The type of searcher to be used when performing nearest " +
+        "neighbor searches. Defaults to BruteSearch.", BruteSearch.class.getCanonicalName());
+    addOption(NUM_PROJECTIONS_OPTION, "np", "The number of projections considered in estimating the " +
         "distances between vectors. Only used when the distance measure requested is either " +
         "ProjectionSearch or FastProjectionSearch. If no value is given, defaults to 20.", "20");
-    addOption("searchSize", "s", "In more efficient searches (non BruteSearch), " +
+    addOption(SEARCH_SIZE_OPTION, "s", "In more efficient searches (non BruteSearch), " +
         "not all distances are calculated for determining the nearest neighbors. The number of " +
         "elements whose distances from the query vector is actually computer is proportional to " +
         "searchSize. If no value is given, defaults to 10.", "10");
-    addOption("maxNumIterations", "i", "The maximum number of iterations to run for the " +
+    addOption(MAX_NUM_ITERATIONS, "i", "The maximum number of iterations to run for the " +
         "BallKMeans algorithm used by the reducer.", "10");
-    addOption("estimatedDistanceCutoff", "e", "The initial estimated distance cutoff between two " +
+    addOption(ESTIMATED_DISTANCE_CUTOFF, "e", "The initial estimated distance cutoff between two " +
         "points for forming new clusters", "10e-6");
+    addOption("summarize", "sum", "Summarize the result of the clustering job", "true");
 
     if (parseArguments(args) == null) {
       return -1;
@@ -278,11 +282,25 @@ public final class StreamingKMeansDriver extends AbstractJob {
 
     // Set the JAR (so that the required libraries are available) and run.
     job.setJarByClass(StreamingKMeansDriver.class);
+
+    // Prevent StreamingKMeans class from logging debug output by default.
+    // TODO(dfilimon): Remove this completely and configure using log files.
+    if (!conf.getBoolean("logDebug", false)) {
+      ((LoggerContext)LoggerFactory.getILoggerFactory()).getLogger(StreamingKMeans.class)
+          .setLevel(Level.INFO);
+    }
+
+    long start = System.currentTimeMillis();
     if (!job.waitForCompletion(true)) {
       throw new InterruptedException("StreamingKMeans interrupted");
     }
+    long end = System.currentTimeMillis();
 
-    log.info("StreamingKMeans clustering complete. Results are in {}", output.toString());
+    if (conf.getBoolean("summarize", true)) {
+      EvaluateClustering.summarize(conf, output, log);
+    }
+    log.info("StreamingKMeans clustering complete. Results are in {}. Took {} ms",
+        output.toString(), end - start);
   }
 
   /**

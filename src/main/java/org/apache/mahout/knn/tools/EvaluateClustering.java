@@ -6,14 +6,18 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.Utils;
 import org.apache.mahout.clustering.OnlineGaussianAccumulator;
 import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.knn.cluster.BallKMeans;
 import org.apache.mahout.knn.cluster.StreamingKMeans;
+import org.apache.mahout.knn.experimental.CentroidWritable;
 import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.knn.search.ProjectionSearch;
 import org.apache.mahout.knn.search.UpdatableSearcher;
@@ -23,11 +27,9 @@ import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.math.random.WeightedThing;
 import org.apache.mahout.math.stats.OnlineSummarizer;
+import org.slf4j.Logger;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.*;
 
 public class EvaluateClustering {
@@ -344,11 +346,44 @@ public class EvaluateClustering {
     }
   }
 
+  public static void summarize(Configuration outputConf, Path outputPath,
+                               Logger log) throws IOException {
+    FileSystem outputFs = FileSystem.get(outputConf);
+    Path outputPaths[];
+    if (outputFs.getFileStatus(outputPath).isDir()) {
+      outputPaths = FileUtil.stat2Paths(outputFs.listStatus(outputPath,
+          new Utils.OutputFileUtils.OutputFilesFilter()));
+    } else {
+      outputPaths = new Path[1];
+      outputPaths[0] = outputPath;
+    }
+
+    OnlineSummarizer weightSummarizer = new OnlineSummarizer();
+    int numClusters = 0;
+    int totalWeight = 0;
+
+    for (Path path : outputPaths) {
+      SequenceFile.Reader reader = new SequenceFile.Reader(outputFs, path, outputConf);
+      IntWritable key = new IntWritable();
+      CentroidWritable value = new CentroidWritable();
+
+      while (reader.next(key, value)) {
+        ++numClusters;
+        Centroid centroid = value.getCentroid().clone();
+        totalWeight += (int)centroid.getWeight();
+        weightSummarizer.add(centroid.getWeight());
+      }
+      reader.close();
+    }
+
+    log.info("Clustered {} points into {} clusters\n", totalWeight, numClusters);
+    log.info("Average number of points per cluster is {} with deviation {}\n",
+        weightSummarizer.getMean(), weightSummarizer.getSD());
+  }
+
   public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException, IllegalAccessException, InstantiationException {
-    /*
-    Preconditions.checkArgument(args.length > 2, "Invalid number of arguments. Need input and " +
-        "output paths");
-        */
+    Preconditions.checkArgument(args.length == 2, "Invalid number of arguments. Need input and " +
+        "output paths " + args.length);
     String inputPath = args[0];
     int numReducedDimension = Integer.parseInt(args[1]);
     EvaluateClustering tester = new EvaluateClustering(inputPath, numReducedDimension);
