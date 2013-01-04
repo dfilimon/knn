@@ -23,9 +23,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.commons.cli.Options;
@@ -37,18 +34,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.mahout.classifier.sgd.*;
 import org.apache.mahout.common.Pair;
-import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.common.iterator.sequencefile.PathType;
 import org.apache.mahout.common.iterator.sequencefile.SequenceFileDirIterable;
-import org.apache.mahout.knn.cluster.BallKMeans;
-import org.apache.mahout.knn.cluster.StreamingKMeans;
-import org.apache.mahout.knn.search.BruteSearch;
-import org.apache.mahout.knn.search.ProjectionSearch;
+import org.apache.mahout.common.iterator.sequencefile.SequenceFileValueIterable;
+import org.apache.mahout.knn.experimental.CentroidWritable;
 import org.apache.mahout.math.Centroid;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
-import org.slf4j.LoggerFactory;
 
 /**
  * Reads and trains an adaptive logistic regression model on the 20 newsgroups data.
@@ -81,25 +74,10 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
   private TrainNewsGroupsKMeansLogisticRegression() {
   }
 
-  public static void computeActualClusters(Iterable<Pair<Text, VectorWritable>> dirIterable,
-                                           Map<String, Centroid> actualClusters) {
-    int clusterId = 0;
-    for (Pair<Text, VectorWritable> pair : dirIterable) {
-      String clusterName = pair.getFirst().toString();
-      Centroid centroid = actualClusters.get(clusterName);
-      if (centroid == null) {
-        centroid = new Centroid(++clusterId, pair.getSecond().get().clone(), 1);
-        actualClusters.put(clusterName, centroid);
-        continue;
-      }
-      centroid.update(pair.getSecond().get());
-    }
-  }
-
   public static void trainActual(Iterable<Pair<Text, VectorWritable>> inputIterable, String outBase,
                                  Map<String, Integer> clusterNamesToIds) throws  IOException {
     Map<String, Centroid> actualClusters = Maps.newHashMap();
-    computeActualClusters(inputIterable, actualClusters);
+    CreateCentroids.computeActualClusters(inputIterable, actualClusters);
 
     OnlineLogisticRegression learningAlgorithm =
         new OnlineLogisticRegression(NUM_CLASSES, NUM_FEATURES_ACTUAL, new L1());
@@ -121,7 +99,7 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
     }
     learningAlgorithm.close();
 
-    ModelSerializer.writeBinary(outBase + "-append.model", learningAlgorithm);
+    ModelSerializer.writeBinary(outBase + "-actual.model", learningAlgorithm);
   }
 
   public static void trainComputed(Iterable<Pair<Text, VectorWritable>> inputIterable,
@@ -154,36 +132,6 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
         learningAlgorithm.getBest().getPayload().getLearner().getModels().get(0));
   }
 
-  public static Iterable<Centroid> getCentroidsFromSeqFileIterable(
-      Iterable<Pair<Text, VectorWritable>> dirIterable) {
-    return Iterables.transform(dirIterable, new Function<Pair<Text, VectorWritable>, Centroid>() {
-      private int count = 0;
-
-      @Override
-      public Centroid apply(Pair<Text, VectorWritable> input) {
-        Preconditions.checkNotNull(input);
-        return new Centroid(count++, input.getSecond().get().clone(), 1);
-      }
-    });
-  }
-
-  public static Pair<Integer, Iterable<Centroid>> clusterBallKMeans(
-      Iterable<Centroid>  dataPoints) {
-    List<Centroid> dataPointsList = Lists.newArrayList(dataPoints);
-    BallKMeans clusterer = new BallKMeans(new BruteSearch(new EuclideanDistanceMeasure()),
-        NUM_FEATURES_BKM, 20);
-    clusterer.cluster(dataPointsList);
-    return new Pair<Integer, Iterable<Centroid>>(NUM_FEATURES_BKM, clusterer);
-  }
-
-  public static Pair<Integer, Iterable<Centroid>> clusterStreamingKMeans(Iterable<Centroid> dataPoints) {
-    ((LoggerContext)LoggerFactory.getILoggerFactory()).getLogger(StreamingKMeans.class).setLevel(Level.INFO);
-    StreamingKMeans clusterer = new StreamingKMeans(new ProjectionSearch(new
-        EuclideanDistanceMeasure(), 20, 10), NUM_FEATURES_SKM, 10e-6);
-    clusterer.cluster(dataPoints);
-    return new Pair<Integer, Iterable<Centroid>>(clusterer.getCentroids().size(), clusterer);
-  }
-
   public static void main(String[] args) throws IOException, ParseException {
     Options options = new Options();
     options.addOption("i", "input", true, "Path to the input folder containing the training set's" +
@@ -197,6 +145,7 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
     options.addOption("s", "streamingkmeans", false, "If set, runs the training with the " +
         "streaming k-means cluster assignments and outputs the model to the output path with a " +
         "-streamingkmeans suffix.");
+    options.addOption("c", "centroids", true, "Path to the centroids seqfile");
 
     CommandLine cmd = (new PosixParser()).parse(options, args);
 
@@ -205,6 +154,9 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
 
     String outputBase = cmd.getOptionValue("output");
     Preconditions.checkNotNull(outputBase);
+
+    String centroidsPath = cmd.getOptionValue("centroids");
+    Preconditions.checkNotNull(centroidsPath);
 
     Configuration conf = new Configuration();
     SequenceFileDirIterable<Text, VectorWritable> inputIterable = new
@@ -232,24 +184,33 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
       System.out.printf("Trained models for actual clusters. Took %d ms\n", end - start);
     }
 
-    if (cmd.hasOption("ballkmeans")) {
-      System.out.printf("\nBall k-means clusters models\n");
-      System.out.printf("----------------------------\n");
-      long start = System.currentTimeMillis();
-      trainComputed(inputIterable, outputBase, "ballkmeans", clusterNamesToIds,
-          clusterBallKMeans(getCentroidsFromSeqFileIterable(inputIterable)));
-      long end = System.currentTimeMillis();
-      System.out.printf("Trained models for ballkmeans clusters. Took %d ms\n", end - start);
-    }
+    if (cmd.hasOption("ballkmeans") || cmd.hasOption("streamingkmeans")) {
+      SequenceFileValueIterable<CentroidWritable> centroidIterable =
+          new SequenceFileValueIterable<CentroidWritable>(new Path(centroidsPath), conf);
+      List<Centroid> centroids =
+          Lists.newArrayList(
+              CreateCentroids.getCentroidsFromCentroidWritableIterable(centroidIterable));
 
-    if (cmd.hasOption("streamingkmeans")) {
-      System.out.printf("\nStreaming k-means clusters models\n");
-      System.out.printf("---------------------------------\n");
-      long start = System.currentTimeMillis();
-      trainComputed(inputIterable, outputBase, "streamingkmeans",
-          clusterNamesToIds, clusterStreamingKMeans(getCentroidsFromSeqFileIterable(inputIterable)));
-      long end = System.currentTimeMillis();
-      System.out.printf("Trained models for streamingkmeans clusters. Took %d ms\n", end - start);
+      if (cmd.hasOption("ballkmeans")) {
+        System.out.printf("\nBall k-means clusters models\n");
+        System.out.printf("----------------------------\n");
+        long start = System.currentTimeMillis();
+        trainComputed(inputIterable, outputBase, "ballkmeans", clusterNamesToIds,
+            new Pair<Integer, Iterable<Centroid>>(NUM_FEATURES_BKM, centroids));
+        long end = System.currentTimeMillis();
+        System.out.printf("Trained models for ballkmeans clusters. Took %d ms\n", end - start);
+      }
+
+      if (cmd.hasOption("streamingkmeans")) {
+        System.out.printf("\nStreaming k-means clusters models\n");
+        System.out.printf("---------------------------------\n");
+        long start = System.currentTimeMillis();
+        trainComputed(inputIterable, outputBase, "streamingkmeans",
+            clusterNamesToIds,
+            new Pair<Integer, Iterable<Centroid>>(centroids.get(0).size(), centroids));
+        long end = System.currentTimeMillis();
+        System.out.printf("Trained models for streamingkmeans clusters. Took %d ms\n", end - start);
+      }
     }
   }
 }
