@@ -3,6 +3,7 @@ package org.apache.mahout.knn.search;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.math.Matrix;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.random.WeightedThing;
 
@@ -26,7 +27,7 @@ public class FastProjectionSearch extends UpdatableSearcher {
 
   // The list of basis vectors. Populated when the first vector's dimension is know by calling
   // initialize once.
-  private List<Vector> basisVectors = null;
+  private Matrix basisMatrix = null;
 
   // The list of sorted lists of scalar projections. The outer list has one entry for each basis
   // vector that all the other vectors will be projected on.
@@ -76,7 +77,7 @@ public class FastProjectionSearch extends UpdatableSearcher {
     if (initialized) {
       return;
     }
-    basisVectors = ProjectionSearch.generateBasis(numDimensions, numProjections);
+    basisMatrix = ProjectionSearch.generateBasis(numProjections, numDimensions);
     initialized = true;
   }
 
@@ -113,11 +114,11 @@ public class FastProjectionSearch extends UpdatableSearcher {
     reindex();
 
     HashSet<Vector> candidates = Sets.newHashSet();
-    for (int i = 0; i < basisVectors.size(); ++i) {
-      final double projection = basisVectors.get(i).dot(query);
+    Vector projection = basisMatrix.times(query);
+    for (int i = 0; i < basisMatrix.numRows(); ++i) {
       List<WeightedThing<Vector>> currProjections = scalarProjections.get(i);
       int middle = Collections.binarySearch(currProjections,
-          new WeightedThing<Vector>(null, projection));
+          new WeightedThing<Vector>(null, projection.get(i)));
       if (middle < 0) {
         middle = -(middle + 1);
       }
@@ -148,11 +149,11 @@ public class FastProjectionSearch extends UpdatableSearcher {
     }
 
     boolean isProjected = true;
-    for (int i = 0; i < basisVectors.size(); ++i) {
-      final double projection = basisVectors.get(i).dot(v);
+    final Vector projection = basisMatrix.times(v);
+    for (int i = 0; i < basisMatrix.numRows(); ++i) {
       List<WeightedThing<Vector>> currProjections = scalarProjections.get(i);
       int middle = Collections.binarySearch(currProjections,
-          new WeightedThing<Vector>(null, projection));
+          new WeightedThing<Vector>(null, projection.get(i)));
       if (middle < 0) {
         isProjected = false;
         break;
@@ -180,9 +181,9 @@ public class FastProjectionSearch extends UpdatableSearcher {
         numPendingRemovals > REMOVAL_THRESHOLD * numProjected) {
       // Project every pending vector onto every basis vector.
       for (Vector pending : pendingAdditions) {
+        Vector projection = basisMatrix.times(pending);
         for (int i = 0; i < numProjections; ++i) {
-          final double projection = basisVectors.get(i).dot(pending);
-          scalarProjections.get(i).add(new WeightedThing<Vector>(pending, projection));
+          scalarProjections.get(i).add(new WeightedThing<Vector>(pending, projection.get(i)));
         }
       }
       pendingAdditions.clear();

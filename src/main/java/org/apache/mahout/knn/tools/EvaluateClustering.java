@@ -3,7 +3,6 @@ package org.apache.mahout.knn.tools;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.Closeables;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -21,16 +20,15 @@ import org.apache.mahout.knn.experimental.CentroidWritable;
 import org.apache.mahout.knn.search.BruteSearch;
 import org.apache.mahout.knn.search.ProjectionSearch;
 import org.apache.mahout.knn.search.UpdatableSearcher;
-import org.apache.mahout.math.Centroid;
-import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.*;
 import org.apache.mahout.math.Vector;
-import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.math.random.WeightedThing;
 import org.apache.mahout.math.stats.OnlineSummarizer;
 import org.slf4j.Logger;
 
 import java.io.*;
 import java.util.*;
+import java.util.Arrays;
 
 public class EvaluateClustering {
   private static final int NUM_CLUSTERS = 20;
@@ -80,14 +78,10 @@ public class EvaluateClustering {
     }
 
     int initialDimension = inputVectors.get(0).size();
-    List<Vector> basisVectors = ProjectionSearch.generateBasis(initialDimension, reducedDimension);
+    Matrix basisMatrix = ProjectionSearch.generateBasis(reducedDimension, initialDimension);
     int numVectors = 0;
     for (Vector v : inputVectors) {
-      Vector reducedVector = new DenseVector(reducedDimension);
-      for (int i = 0; i < reducedDimension; ++i) {
-        reducedVector.setQuick(i, basisVectors.get(i).dot(v));
-      }
-      reducedVectors.add(new Centroid(numVectors++, reducedVector, 1));
+      reducedVectors.add(new Centroid(numVectors++, basisMatrix.times(v), 1));
     }
     double end = System.currentTimeMillis();
     System.out.printf("Finished reading data; initial dimension %d; projected to %d; took %f\n",

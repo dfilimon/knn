@@ -5,7 +5,7 @@ import org.apache.mahout.common.Pair;
 import org.apache.mahout.knn.cluster.DataUtils;
 import org.apache.mahout.knn.search.ProjectionSearch;
 import org.apache.mahout.math.Centroid;
-import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.Matrix;
 import org.apache.mahout.math.Vector;
 
 import java.io.*;
@@ -23,24 +23,18 @@ public class HypercubeVisualizer {
     List<Centroid> medians = dataset.getSecond();
 
     if (numDimensions > 3) {
-      List<Vector> basisVectors = ProjectionSearch.generateBasis(numDimensions, 3);
+      Matrix basisMatrix = ProjectionSearch.generateBasis(3, numDimensions);
       List<Centroid> newDatapoins = Lists.newArrayList();
       for (int i = 0; i < datapoints.size(); ++i) {
         Centroid c = datapoints.get(i);
-        Vector v = new DenseVector(3);
-        v.set(0, c.dot(basisVectors.get(0)));
-        v.set(1, c.dot(basisVectors.get(1)));
-        v.set(2, c.dot(basisVectors.get(2)));
+        Vector v = basisMatrix.times(c);
         newDatapoins.add(new Centroid(i, v, 1));
       }
       datapoints = newDatapoins;
       List<Centroid> newMedians = Lists.newArrayList();
       for (int i = 0; i < medians.size(); ++i) {
         Centroid c = medians.get(i);
-        Vector v = new DenseVector(3);
-        v.set(0, c.dot(basisVectors.get(0)));
-        v.set(1, c.dot(basisVectors.get(1)));
-        v.set(2, c.dot(basisVectors.get(2)));
+        Vector v = basisMatrix.times(c);
         newMedians.add(new Centroid(i, v, 1));
       }
       medians = newMedians;

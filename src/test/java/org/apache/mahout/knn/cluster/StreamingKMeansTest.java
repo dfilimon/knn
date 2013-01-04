@@ -45,7 +45,7 @@ public class StreamingKMeansTest {
   private static final int NUM_PROJECTIONS = 2;
   private static final int SEARCH_SIZE = 10;
 
-  private static Pair<List<Centroid>, List<Centroid>> syntheticData =
+  private static final Pair<List<Centroid>, List<Centroid>> syntheticData =
       DataUtils.sampleMultiNormalHypercube(NUM_DIMENSIONS, NUM_DATA_POINTS);
 
   private UpdatableSearcher searcher;
@@ -81,6 +81,7 @@ public class StreamingKMeansTest {
     int numTests = 8;
     System.out.printf("Distance cutoff for %s\n", searcher.getClass().getName());
     for (int i = 0; i < numTests; ++i) {
+      searcher.clear();
       Pair<List<Centroid>, List<Centroid>> syntheticData = DataUtils.sampleMultiNormalHypercube
           (NUM_DIMENSIONS, NUM_DATA_POINTS);
       int numStreamingClusters = (int)Math.log(syntheticData.getFirst().size()) * (1 <<
@@ -100,6 +101,7 @@ public class StreamingKMeansTest {
 
   @Test
   public void testClustering() {
+    searcher.clear();
     System.out.printf("k log n = %d\n", (int)Math.log(syntheticData.getFirst().size()) * (1 <<
         NUM_DIMENSIONS));
     StreamingKMeans clusterer =
@@ -120,6 +122,8 @@ public class StreamingKMeansTest {
         .getClass().getName());
     System.out.printf("Total number of clusters %d\n", clusterer.getCentroids().size());
 
+    System.out.printf("Weights: %f %f\n", totalWeight(syntheticData.getFirst()),
+        totalWeight(clusterer.getCentroids()));
     assertEquals("Total weight not preserved", totalWeight(syntheticData.getFirst()),
         totalWeight(clusterer.getCentroids()), 1e-9);
 

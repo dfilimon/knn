@@ -23,7 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.*;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.function.DoubleFunction;
 import org.apache.mahout.math.function.Functions;
@@ -49,7 +49,7 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
    * The TreeSet of scalar projections at index i in scalarProjections corresponds to the vector
    * at index i from basisVectors.
    */
-  private List<Vector> basisVectors;
+  private Matrix basisMatrix;
 
   /**
    * The number of elements to consider on both sides in the ball around the vector found by the
@@ -57,27 +57,49 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
    */
   private int searchSize;
 
-  private int numDimensions;
   private int numProjections;
   private boolean initialized = false;
 
-  public static List<Vector> generateBasis(int numDimensions, int numProjections) {
+  /**
+   * Generates a basis matrix of size projectedVectorSize x vectorSize. Multiplying a a vector by
+   * this matrix results in the projected vector.
+   * @param projectedVectorSize final projected size of a vector (number of projection vectors)
+   * @param vectorSize initial vector size
+   * @return a projection matrix
+   */
+  public static Matrix generateBasis(int projectedVectorSize, int vectorSize) {
+    Matrix basisMatrix = new DenseMatrix(projectedVectorSize, vectorSize);
+    basisMatrix.assign(Functions.random());
+    for (MatrixSlice row : basisMatrix) {
+      row.vector().assign(row.normalize());
+    }
+    return basisMatrix;
+  }
+
+  /**
+   * Generates a list of projectedVectorSize vectors, each of size vectorSize. This looks like a
+   * matrix of size (projectedVectorSize, vectorSize).
+   * @param projectedVectorSize final projected size of a vector (number of projection vectors)
+   * @param vectorSize initial vector size
+   * @return a list of projection vectors
+   */
+  public static List<Vector> generateVectorBasis(int projectedVectorSize, int vectorSize) {
     final DoubleFunction random = Functions.random();
     List<Vector> basisVectors = Lists.newArrayList();
-    for (int i = 0; i < numProjections; ++i) {
-      Vector basisVector = new DenseVector(numDimensions);
+    for (int i = 0; i < projectedVectorSize; ++i) {
+      Vector basisVector = new DenseVector(vectorSize);
       basisVector.assign(random);
       basisVector.normalize();
       basisVectors.add(basisVector);
     }
-    return  basisVectors;
+    return basisVectors;
   }
 
   private void initialize(int numDimensions) {
     if (initialized)
       return;
     initialized = true;
-    basisVectors = generateBasis(numDimensions, numProjections);
+    basisMatrix = generateBasis(numProjections, numDimensions);
     scalarProjections = Lists.newArrayList();
     for (int i = 0; i < numProjections; ++i) {
       scalarProjections.add(Sets.<WeightedThing<Vector>>newTreeSet());
@@ -100,16 +122,11 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
   @Override
   public void add(Vector v) {
     initialize(v.size());
-    Preconditions.checkArgument(v.size() == basisVectors.get(0).size(),
-        "Invalid dimension of vector to add. " +
-            "Expected " + Integer.toString(basisVectors.get(0).size()) +
-            " Got " + Integer.toString(v.size()));
-    // TODO(dfilimon): Are these checks even relevant?
+    Vector projection = basisMatrix.times(v);
     // Add the the new vector and the projected distance to each set separately.
-    Iterator<Vector> basisVector = basisVectors.iterator();
+    int i = 0;
     for (TreeSet<WeightedThing<Vector>> s : scalarProjections) {
-      Preconditions.checkArgument(s.add(new WeightedThing<Vector>(v, v.dot(basisVector.next()))),
-          "Adding a new projection set failed");
+      s.add(new WeightedThing<Vector>(v, projection.get(i++)));
     }
     int numVectors = scalarProjections.get(0).size();
     for (TreeSet<WeightedThing<Vector>> s : scalarProjections) {
@@ -139,12 +156,13 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
    *
    * @param query the vector to search for.
    * @param limit the number of results to return.
-   * @return
+   * @return a list of Vectors wrapped in WeightedThings where the "thing"'s weight is the
+   * distance.
    */
   public List<WeightedThing<Vector>> search(final Vector query, int limit) {
     HashSet<Vector> candidates = Sets.newHashSet();
 
-    Iterator<Vector> projections = basisVectors.iterator();
+    Iterator<? extends Vector> projections = basisMatrix.iterator();
     for (TreeSet<WeightedThing<Vector>> v : scalarProjections) {
       Vector basisVector = projections.next();
       WeightedThing<Vector> projectedQuery = new WeightedThing<Vector>(query,
@@ -191,7 +209,7 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
   public boolean remove(Vector vector, double epsilon) {
     List<WeightedThing<Vector>> x = search(vector, 1);
     if (x.get(0).getWeight() < 1e-7) {
-      Iterator<Vector> basisVectors = this.basisVectors.iterator();
+      Iterator<? extends Vector> basisVectors = basisMatrix.iterator();
       for (TreeSet<WeightedThing<Vector>> projection : scalarProjections) {
         if (!projection.remove(new WeightedThing<Vector>(null, vector.dot(basisVectors.next())))) {
           throw new RuntimeException("Internal inconsistency in ProjectionSearch");
@@ -205,6 +223,9 @@ public class ProjectionSearch extends UpdatableSearcher implements Iterable<Vect
 
   @Override
   public void clear() {
+    if (scalarProjections == null) {
+      return;
+    }
     for (TreeSet<WeightedThing<Vector>> set : scalarProjections) {
       set.clear();
     }

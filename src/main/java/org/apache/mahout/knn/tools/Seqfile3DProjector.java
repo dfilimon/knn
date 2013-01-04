@@ -34,7 +34,7 @@ public class Seqfile3DProjector {
     while (reader.next(key, value)) {
       // If we don't have a basis yet, generate one (only once).
       if (!initialized) {
-        basisVectors = ProjectionSearch.generateBasis(value.get().size(), 3);
+        basisVectors = ProjectionSearch.generateVectorBasis(value.get().size(), 3);
         initialized = true;
       }
       // Project the vector.
