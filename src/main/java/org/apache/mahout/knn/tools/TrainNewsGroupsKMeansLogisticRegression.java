@@ -106,8 +106,8 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
                                    String outBase, String suffix,
                                    Map<String, Integer> clusterNamesToIds,
                                    Pair<Integer, Iterable<Centroid>> numFeaturesCentroidsPair) throws IOException {
-    System.out.printf("[%s] Starting training\n", suffix);
     int numFeatures = numFeaturesCentroidsPair.getFirst();
+    System.out.printf("[%s] Starting training with %d features\n", suffix, numFeatures);
     AdaptiveLogisticRegression learningAlgorithm =
         new AdaptiveLogisticRegression(NUM_CLASSES, numFeatures, new L1());
 
@@ -207,7 +207,7 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
         long start = System.currentTimeMillis();
         trainComputed(inputIterable, outputBase, "streamingkmeans",
             clusterNamesToIds,
-            new Pair<Integer, Iterable<Centroid>>(centroids.get(0).size(), centroids));
+            new Pair<Integer, Iterable<Centroid>>(centroids.size(), centroids));
         long end = System.currentTimeMillis();
         System.out.printf("Trained models for streamingkmeans clusters. Took %d ms\n", end - start);
       }
