@@ -79,8 +79,8 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
     Map<String, Centroid> actualClusters = Maps.newHashMap();
     CreateCentroids.computeActualClusters(inputIterable, actualClusters);
 
-    OnlineLogisticRegression learningAlgorithm =
-        new OnlineLogisticRegression(NUM_CLASSES, NUM_FEATURES_ACTUAL, new L1());
+    AdaptiveLogisticRegression learningAlgorithm =
+        new AdaptiveLogisticRegression(NUM_CLASSES, NUM_FEATURES_ACTUAL, new L1());
 
     int vectorId = 0;
     for (Pair<Text, VectorWritable> pair : inputIterable) {
@@ -106,10 +106,10 @@ public final class TrainNewsGroupsKMeansLogisticRegression {
                                    String outBase, String suffix,
                                    Map<String, Integer> clusterNamesToIds,
                                    Pair<Integer, Iterable<Centroid>> numFeaturesCentroidsPair) throws IOException {
-    int numFeatures = numFeaturesCentroidsPair.getFirst();
+    final int numFeatures = numFeaturesCentroidsPair.getFirst();
     System.out.printf("[%s] Starting training with %d features\n", suffix, numFeatures);
     AdaptiveLogisticRegression learningAlgorithm =
-        new AdaptiveLogisticRegression(NUM_CLASSES, numFeatures, new L1());
+        new AdaptiveLogisticRegression(clusterNamesToIds.size(), numFeatures, new L1());
 
     int vectorId = 0;
     for (Pair<Text, VectorWritable> pair : inputIterable) {
