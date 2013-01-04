@@ -117,7 +117,7 @@ public final class StreamingKMeansDriver extends AbstractJob {
         "not all distances are calculated for determining the nearest neighbors. The number of " +
         "elements whose distances from the query vector is actually computer is proportional to " +
         "searchSize. If no value is given, defaults to 10.", "10");
-    addOption(MAX_NUM_ITERATIONS, "i", "The maximum number of iterations to run for the " +
+    addOption(MAX_NUM_ITERATIONS, "mi", "The maximum number of iterations to run for the " +
         "BallKMeans algorithm used by the reducer.", "10");
     addOption(ESTIMATED_DISTANCE_CUTOFF, "e", "The initial estimated distance cutoff between two " +
         "points for forming new clusters", "10e-6");
